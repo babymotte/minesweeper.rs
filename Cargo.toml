@@ -1,0 +1,17 @@
+[package]
+name = "minesweeper"
+version = "0.1.0"
+authors = ["Michael Bachmann <kontakt@babymotte.de>"]
+
+[dependencies]
+rand = "0.3"
+time = "0.1"
+
+[lib]
+name = "minesweeper"
+path="src/minesweeper.rs"
+test=true
+
+[[bin]]
+name = "minesweeper-cli"
+path="src/minesweeper-cli.rs"
