@@ -1,8 +1,10 @@
 extern crate rand;
 extern crate time;
 
-use core::{Tile, TileState, Difficulty, MineField};
+use core;
+use core::{TileState, Difficulty, MineField};
 use time::Tm;
+use std::sync::Arc;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum GameState {
@@ -13,9 +15,9 @@ pub enum GameState {
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub enum UiUpdate<'a> {
-    TileUpdate(&'a Tile, TileState),
-    TimeUpdate(&'a Tm),
+pub enum UiUpdate {
+    TileUpdate(usize, usize, TileState),
+    TimeUpdate(Tm),
     GameStateUpdate(GameState),
 }
 
@@ -23,71 +25,67 @@ pub trait MinesweeperInterface {
     fn update_ui(&self, update: UiUpdate);
 }
 
-pub struct GameHandle<'a> {
+pub struct GameHandle {
     level: Difficulty,
-    board: Option<&'a MineField>,
-    interface: &'a MinesweeperInterface,
+    board: Option<MineField>,
+    interface: Arc<MinesweeperInterface>,
 }
 
-impl<'a> GameHandle<'a> {
-    pub fn uncover(&'a mut self, x: usize, y: usize) {
+impl GameHandle {
+    pub fn get_width(&self) -> usize {
+        core::get_params_for_difficulty(self.level).0
+    }
+
+    pub fn get_height(&self) -> usize {
+        core::get_params_for_difficulty(self.level).1
+    }
+
+    pub fn get_mines(&self) -> usize {
+        core::get_params_for_difficulty(self.level).2
+    }
+
+    pub fn get_board(&self) -> &Option<MineField> {
+        &self.board
+    }
+
+    pub fn get_tile_state(&self, x: usize, y: usize) -> TileState {
+        match self.board {
+            Option::None => TileState::Covered,
+            Option::Some(ref board) => board.get_tile_state(x, y)
+        }
+    }
+
+    pub fn uncover(&mut self, x: usize, y: usize) {
 
         if let Option::None = self.board {
             let board: MineField = MineField::new(self.level, x, y);
-            let board: &'a MineField = &board;
             self.board = Option::Some(board);
         }
 
-        let mut board: Option<&'a MineField> = self.board;
-        let mut board: &'a MineField = board.unwrap();
-        let mut tile: &mut Tile = board.get_tile(x, y);
-        self.uncover_tile(tile)
+        let mut board = self.board.as_mut().unwrap();
+
+        let result = board.uncover(x, y);
+
+        match result {
+            TileState::Uncovered(_) |
+            TileState::Detonated => self.interface.update_ui(UiUpdate::TileUpdate(x, y, result)),
+            _ => {}
+        };
     }
 
     pub fn toggle_flag(&mut self, x: usize, y: usize) {
 
-        let mut board = &self.board;
-        if let &Option::Some(ref board) = board {
-            let mut tile = board.get_tile(x, y);
-            self.toggle_flag_tile(tile)
+        if let Option::None = self.board {
+            return;
         }
 
-    }
+        let mut board = self.board.as_mut().unwrap();
 
-    pub fn get_board(&self) -> &Option<&MineField> {
-        &self.board
-    }
-
-    fn uncover_tile(&mut self, tile: &mut Tile) {
-
-        let ref mut board = self.board;
-        let result = match board {
-            &mut Option::Some(ref mut board) => board.uncover(tile),
-            _ => TileState::NoOp,
-        };
-
-        match result {
-            TileState::Uncovered(_) => self.interface.update_ui(UiUpdate::TileUpdate(tile, result)),
-            TileState::Detonated => self.interface.update_ui(UiUpdate::TileUpdate(tile, result)),
-            _ => {}
-        };
-    }
-
-    fn toggle_flag_tile(&mut self, tile: &mut Tile) {
-
-        let ref mut board = self.board;
-        let result = match board {
-            &mut Option::Some(ref mut board) => board.toggle_flag(tile),
-            _ => TileState::NoOp,
-        };
-
-        match result {
-            _ => {}
-        };
+        board.toggle_flag(x, y);
     }
 }
 
-pub fn start_game<I: MinesweeperInterface>(interface: &I, level: Difficulty) -> GameHandle {
+pub fn start_game(interface: Arc<MinesweeperInterface>, level: Difficulty) -> GameHandle {
 
     GameHandle {
         level: level,

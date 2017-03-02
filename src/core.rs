@@ -47,12 +47,7 @@ impl Tile {
 impl MineField {
     pub fn new(level: Difficulty, blank_x: usize, blank_y: usize) -> MineField {
 
-        let params = match level {
-            Difficulty::Beginner => (9, 9, 10),
-            Difficulty::Intermediate => (16, 16, 40),
-            Difficulty::Expert => (30, 16, 99),
-            Difficulty::Custom(w, h, m) => (w, h, m),
-        };
+        let params = get_params_for_difficulty(level);
 
         let mut mf = MineField {
             tiles: Vec::new(),
@@ -73,7 +68,13 @@ impl MineField {
         self.height
     }
 
-    pub fn uncover(&mut self, tile: &mut Tile) -> TileState {
+    pub fn get_tile_state(&self, x: usize, y: usize) -> TileState {
+        self.get_tile(x, y).state
+    }
+
+    pub fn uncover(&mut self, x: usize, y: usize) -> TileState {
+
+        let mut tile = self.get_mut_tile(x, y);
 
         match tile.state {
             TileState::Covered => {
@@ -89,7 +90,9 @@ impl MineField {
         }
     }
 
-    pub fn toggle_flag(&mut self, tile: &mut Tile) -> TileState {
+    pub fn toggle_flag(&mut self, x: usize, y: usize) -> TileState {
+
+        let tile = self.get_mut_tile(x, y);
 
         match tile.state {
             TileState::Covered => {
@@ -104,7 +107,12 @@ impl MineField {
         }
     }
 
-    pub fn get_tile(&mut self, x: usize, y: usize) -> &mut Tile {
+    pub fn get_tile(&self, x: usize, y: usize) -> &Tile {
+        let i = self.to_index(x, y);
+        &self.tiles[i]
+    }
+
+    fn get_mut_tile(&mut self, x: usize, y: usize) -> &mut Tile {
         let i = self.to_index(x, y);
         &mut self.tiles[i]
     }
@@ -156,5 +164,15 @@ impl MineField {
 
     fn to_index(&self, x: usize, y: usize) -> usize {
         y * self.width + x
+    }
+}
+
+pub fn get_params_for_difficulty(level: Difficulty) -> (usize, usize, usize) {
+
+    match level {
+        Difficulty::Beginner => (9, 9, 10),
+        Difficulty::Intermediate => (16, 16, 40),
+        Difficulty::Expert => (30, 16, 99),
+        Difficulty::Custom(w, h, m) => (w, h, m),
     }
 }
