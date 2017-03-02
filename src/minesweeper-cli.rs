@@ -2,38 +2,50 @@ extern crate minesweeper;
 extern crate rand;
 
 use minesweeper::core::{Difficulty, TileState};
-use minesweeper::interface::{MinesweeperInterface, GameHandle, UiUpdate};
-use std::sync::Arc;
+use minesweeper::interface::{MinesweeperInterface, GameHandle, UiUpdate, GameState};
+use std::sync::{Arc, Mutex};
 
 fn main() {
 
-    let interface = Arc::new(CliInterface {});
+    let interface = Arc::new(Mutex::new(CliInterface {end: false}));
 
-    let mut handle = minesweeper::interface::start_game(interface, Difficulty::Beginner);
-
-    println!("");
-    print_board(&handle);
-    println!("");
-
-    handle.uncover(0, 0);
+    let mut handle = minesweeper::interface::start_game(interface.clone(), Difficulty::Beginner);
 
     println!("");
     print_board(&handle);
     println!("");
 
-    handle.uncover(1, 0);
+    let mut i = 0;
+    let width = handle.get_width();
 
-    println!("");
-    print_board(&handle);
-    println!("");
-    
-    handle.uncover(2, 0);
+    while !interface.lock().unwrap().end {
+        
+        handle.uncover(i % width, i / width);
+
+        println!("");
+        print_board(&handle);
+        println!("");
+
+        i += 1;
+    }
 }
 
-struct CliInterface {}
+struct CliInterface {
+    end: bool
+}
 
 impl MinesweeperInterface for CliInterface {
-    fn update_ui(&self, update: UiUpdate) {}
+    fn update_ui(&mut self, update: UiUpdate) {
+        match update {
+            UiUpdate::GameStateUpdate(state) => {
+                match state {
+                    GameState::Won | GameState::Lost => self.end = true,
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 fn print_board(handle: &GameHandle) {
