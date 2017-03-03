@@ -7,31 +7,32 @@ use std::sync::{Arc, Mutex};
 
 fn main() {
 
-    let interface = Arc::new(Mutex::new(CliInterface {end: false}));
+    let interface = Arc::new(Mutex::new(CliInterface {
+        handle: Option::None,
+        end: false,
+    }));
 
     let mut handle = minesweeper::interface::start_game(interface.clone(), Difficulty::Beginner);
+    let width = handle.get_width();
+    let height = handle.get_height();
 
     println!("");
     print_board(&handle);
     println!("");
 
-    let mut i = 0;
-    let width = handle.get_width();
-
-    while !interface.lock().unwrap().end {
-        
-        handle.uncover(i % width, i / width);
-
-        println!("");
-        print_board(&handle);
-        println!("");
-
-        i += 1;
+    for i in 0..width * height {
+        let x = i % width;
+        let y = i / width;
+        println!("Uncovering ({}, {})", x, y);
+        handle.uncover(x, y);
     }
+
+    println!("Done. Exiting...");
 }
 
 struct CliInterface {
-    end: bool
+    handle: Option<GameHandle>,
+    end: bool,
 }
 
 impl MinesweeperInterface for CliInterface {
@@ -41,6 +42,13 @@ impl MinesweeperInterface for CliInterface {
                 match state {
                     GameState::Won | GameState::Lost => self.end = true,
                     _ => {}
+                }
+            }
+            UiUpdate::TileUpdate(_, _, _) => {
+                if let Option::Some(ref handle) = self.handle {
+                    println!("");
+                    print_board(handle);
+                    println!("");
                 }
             }
             _ => {}
