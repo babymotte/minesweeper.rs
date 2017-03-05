@@ -69,8 +69,10 @@ impl GameHandle {
         match result {
             TileState::Uncovered(_) |
             TileState::Detonated => {
-                let interface: &Arc<Mutex<MinesweeperInterface>> = &self.interface;
-                interface.lock().unwrap().update_ui(UiUpdate::TileUpdate(x, y, result));
+                let interface = &self.interface;
+                let interface = interface.lock();
+                let mut interface = interface.unwrap();
+                interface.update_ui(UiUpdate::TileUpdate(x, y, result));
             }
             _ => {}
         };

@@ -26,6 +26,7 @@ pub struct Tile {
     nearby_mines: u8,
 }
 
+#[derive(Debug)]
 pub struct MineField {
     tiles: Vec<Tile>,
     width: usize,

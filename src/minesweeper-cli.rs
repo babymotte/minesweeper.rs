@@ -7,14 +7,17 @@ use std::sync::{Arc, Mutex};
 
 fn main() {
 
-    let interface = Arc::new(Mutex::new(CliInterface {
+    let interface = CliInterface {
         handle: Option::None,
         end: false,
-    }));
+    };
+    let interface_arc = Arc::new(Mutex::new(interface));
 
-    let mut handle = minesweeper::interface::start_game(interface.clone(), Difficulty::Beginner);
+    let mut handle = minesweeper::interface::start_game(interface_arc.clone(), Difficulty::Beginner);
     let width = handle.get_width();
     let height = handle.get_height();
+
+    interface_arc.lock().unwrap().handle = Option::Some(handle);
 
     println!("");
     print_board(&handle);
