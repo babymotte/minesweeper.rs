@@ -17,8 +17,6 @@ fn main() {
     let width = handle.get_width();
     let height = handle.get_height();
 
-    interface_arc.lock().unwrap().handle = Option::Some(handle);
-
     println!("");
     print_board(&handle);
     println!("");
