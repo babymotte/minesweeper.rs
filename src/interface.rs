@@ -25,7 +25,7 @@ pub enum UiUpdate {
 pub struct GameHandle {
     level: Difficulty,
     board: Option<MineField>,
-    interface: Sender<UiUpdate>
+    interface: Sender<UiUpdate>,
 }
 
 impl GameHandle {
@@ -59,21 +59,27 @@ impl GameHandle {
             self.board = Option::Some(board);
         }
 
-        let mut board = self.board.as_mut().unwrap();
-
-        let result = board.uncover(x, y);
+        let result = {
+            let mut board = self.board.as_mut().unwrap();
+            board.uncover(x, y)
+        };
 
         match result {
-            TileState::Uncovered(_) => {
-                let interface = &self.interface;
-                let update = UiUpdate::TileUpdate(x, y, result);
-                interface.send(update).unwrap();
-            },
+            TileState::Uncovered(mine_count) => {
+                {
+                    let interface = &self.interface;
+                    let update = UiUpdate::TileUpdate(x, y, result);
+                    interface.send(update).unwrap();
+                }
+                if mine_count == 0 {
+                    self.uncover_nearby_mines(x, y);
+                }
+            }
             TileState::Detonated => {
                 let interface = &self.interface;
                 let update = UiUpdate::GameStateUpdate(GameState::Lost);
                 interface.send(update).unwrap();
-            },
+            }
             _ => {}
         };
     }
@@ -87,6 +93,25 @@ impl GameHandle {
         let mut board = self.board.as_mut().unwrap();
 
         board.toggle_flag(x, y);
+    }
+
+    fn uncover_nearby_mines(&mut self, x: usize, y: usize) {
+
+        let mut uncover = Vec::<(usize, usize)>::new();
+
+        if let Option::Some(ref board) = self.board {
+            let neighbors = board.get_nearby_coordinates(x, y);
+            let filtered = neighbors.iter().filter(|c| {
+                let tile = board.get_tile(c.0, c.1);
+                tile.get_state() == TileState::Covered && tile.get_nearby_mines() == 0
+            });
+            for c in filtered {
+                uncover.push(*c);
+            }
+        }
+        for c in uncover {
+            self.uncover(c.0, c.1);
+        }
     }
 }
 

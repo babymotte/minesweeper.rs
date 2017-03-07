@@ -4,14 +4,15 @@ extern crate rand;
 use minesweeper::core::{Difficulty, TileState};
 use minesweeper::interface::{GameHandle, UiUpdate, GameState};
 use std::sync::mpsc;
+use std::io;
+use std::thread;
+use std::sync::{Arc, Mutex};
 
 fn main() {
 
     let (tx, rx) = mpsc::channel();
 
-    let mut handle = minesweeper::interface::start_game(tx.clone(), Difficulty::Beginner);
-    let width = handle.get_width();
-    let height = handle.get_height();
+    let handle = minesweeper::interface::start_game(tx.clone(), Difficulty::Beginner);
 
     println!("");
     print_board(&handle);
@@ -19,19 +20,27 @@ fn main() {
 
     let mut lost = false;
 
-    for i in 0..width * height {
+    let handle = Arc::new(Mutex::new(handle));
 
-        if lost {
-            break;
-        }
+    {
+        let handle = handle.clone();
+        thread::spawn(move || while !lost {
+            println!("Please enter the field you want to uncover in the form 'x,y':");
 
-        let x = i % width;
-        let y = i / width;
-        println!("Uncovering ({}, {})", x, y);
-        handle.uncover(x, y);
+            let mut input = String::new();
+            io::stdin().read_line(&mut input).expect("Failed to read line");
+            let split = input.split(",").collect::<Vec<&str>>();
+            let x: usize = split[0].trim().parse().expect("Please type a number!");
+            let y: usize = split[1].trim().parse().expect("Please type a number!");
 
+            println!("Uncovering ({}, {})", x, y);
+            handle.lock().unwrap().uncover(x, y);
+        });
+    }
+
+    while !lost {
         let update = rx.recv().unwrap();
-        lost = eval_update(update, &handle);
+        lost = eval_update(update, &handle.lock().unwrap());
     }
 
     if lost {

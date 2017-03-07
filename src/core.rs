@@ -35,6 +35,15 @@ pub struct MineField {
 
 
 impl Tile {
+
+    pub fn get_state(&self) -> TileState {
+        self.state
+    }
+    
+    pub fn get_nearby_mines(&self) -> u8 {
+        self.nearby_mines
+    }
+
     fn detonate(&mut self) {
         self.state = TileState::Detonated;
     }
@@ -161,6 +170,11 @@ impl MineField {
         let filtered_cs = cs.filter(|c| c.0 < self.width && c.1 < self.height);
         let is = filtered_cs.map(|c| self.to_index(c.0, c.1));
         is.collect()
+    }
+
+    pub fn get_nearby_coordinates(&self, x: usize, y: usize) -> Vec<(usize, usize)> {
+        let nearby_indices = self.get_nearby_indices(x as i8, y as i8);
+        nearby_indices.iter().map(|i| (i % self.get_width() as usize, i / self.get_width() as usize)).collect()
     }
 
     fn to_index(&self, x: usize, y: usize) -> usize {
