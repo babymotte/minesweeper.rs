@@ -4,7 +4,8 @@ extern crate time;
 use core;
 use core::{TileState, Difficulty, MineField};
 use time::Tm;
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc::Sender;
+
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum GameState {
@@ -21,14 +22,10 @@ pub enum UiUpdate {
     GameStateUpdate(GameState),
 }
 
-pub trait MinesweeperInterface {
-    fn update_ui(&mut self, update: UiUpdate);
-}
-
 pub struct GameHandle {
     level: Difficulty,
     board: Option<MineField>,
-    interface: Arc<Mutex<MinesweeperInterface>>
+    interface: Sender<UiUpdate>
 }
 
 impl GameHandle {
@@ -67,13 +64,16 @@ impl GameHandle {
         let result = board.uncover(x, y);
 
         match result {
-            TileState::Uncovered(_) |
+            TileState::Uncovered(_) => {
+                let interface = &self.interface;
+                let update = UiUpdate::TileUpdate(x, y, result);
+                interface.send(update).unwrap();
+            },
             TileState::Detonated => {
                 let interface = &self.interface;
-                let interface = interface.lock();
-                let mut interface = interface.unwrap();
-                interface.update_ui(UiUpdate::TileUpdate(x, y, result));
-            }
+                let update = UiUpdate::GameStateUpdate(GameState::Lost);
+                interface.send(update).unwrap();
+            },
             _ => {}
         };
     }
@@ -90,7 +90,7 @@ impl GameHandle {
     }
 }
 
-pub fn start_game(interface: Arc<Mutex<MinesweeperInterface>>, level: Difficulty) -> GameHandle {
+pub fn start_game(interface: Sender<UiUpdate>, level: Difficulty) -> GameHandle {
 
     GameHandle {
         level: level,

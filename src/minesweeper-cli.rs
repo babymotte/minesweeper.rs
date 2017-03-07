@@ -2,18 +2,14 @@ extern crate minesweeper;
 extern crate rand;
 
 use minesweeper::core::{Difficulty, TileState};
-use minesweeper::interface::{MinesweeperInterface, GameHandle, UiUpdate, GameState};
-use std::sync::{Arc, Mutex};
+use minesweeper::interface::{GameHandle, UiUpdate, GameState};
+use std::sync::mpsc;
 
 fn main() {
 
-    let interface = CliInterface {
-        handle: Option::None,
-        end: false,
-    };
-    let interface_arc = Arc::new(Mutex::new(interface));
+    let (tx, rx) = mpsc::channel();
 
-    let mut handle = minesweeper::interface::start_game(interface_arc.clone(), Difficulty::Beginner);
+    let mut handle = minesweeper::interface::start_game(tx.clone(), Difficulty::Beginner);
     let width = handle.get_width();
     let height = handle.get_height();
 
@@ -21,39 +17,38 @@ fn main() {
     print_board(&handle);
     println!("");
 
+    let mut lost = false;
+
     for i in 0..width * height {
+
+        if lost {
+            break;
+        }
+
         let x = i % width;
         let y = i / width;
         println!("Uncovering ({}, {})", x, y);
         handle.uncover(x, y);
+
+        let update = rx.recv().unwrap();
+        lost = eval_update(update, &handle);
     }
 
-    println!("Done. Exiting...");
+    if lost {
+        println!("You are dead!")
+    } else {
+        println!("Congratulations! You won!")
+    }
 }
 
-struct CliInterface {
-    handle: Option<GameHandle>,
-    end: bool,
-}
+fn eval_update(update: UiUpdate, handle: &GameHandle) -> bool {
 
-impl MinesweeperInterface for CliInterface {
-    fn update_ui(&mut self, update: UiUpdate) {
-        match update {
-            UiUpdate::GameStateUpdate(state) => {
-                match state {
-                    GameState::Won | GameState::Lost => self.end = true,
-                    _ => {}
-                }
-            }
-            UiUpdate::TileUpdate(_, _, _) => {
-                if let Option::Some(ref handle) = self.handle {
-                    println!("");
-                    print_board(handle);
-                    println!("");
-                }
-            }
-            _ => {}
-        }
+    println!("");
+    print_board(handle);
+    println!("");
+    match update {
+        UiUpdate::GameStateUpdate(state) => state == GameState::Lost,
+        _ => false,
     }
 }
 
