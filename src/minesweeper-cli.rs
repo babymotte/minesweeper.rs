@@ -25,7 +25,6 @@ fn main() {
     {
         let handle = handle.clone();
         thread::spawn(move || while !lost {
-            println!("Please enter the field you want to uncover in the form 'x,y':");
 
             let mut input = String::new();
             io::stdin().read_line(&mut input).expect("Failed to read line");
@@ -33,12 +32,12 @@ fn main() {
             let x: usize = split[0].trim().parse().expect("Please type a number!");
             let y: usize = split[1].trim().parse().expect("Please type a number!");
 
-            println!("Uncovering ({}, {})", x, y);
             handle.lock().unwrap().uncover(x, y);
         });
     }
 
     while !lost {
+        println!("Please enter the field you want to uncover in the form 'x,y':");
         let update = rx.recv().unwrap();
         lost = eval_update(update, &handle.lock().unwrap());
     }
