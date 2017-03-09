@@ -3,10 +3,9 @@ extern crate time;
 
 use core;
 use core::{TileState, Difficulty, MineField};
-use time::Tm;
 
 
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum GameState {
     NotStarted,
     Started,
@@ -14,7 +13,7 @@ pub enum GameState {
     Lost,
 }
 
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct TileUpdate {
     x: usize,
     y: usize,

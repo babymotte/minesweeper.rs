@@ -7,7 +7,7 @@ use minesweeper::interface::{GameHandle, GameState};
 use std::io;
 use regex::Regex;
 
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(Debug, Clone, Copy)]
 enum Command {
     Uncover,
     Flag,
