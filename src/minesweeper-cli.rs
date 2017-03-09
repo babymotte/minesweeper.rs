@@ -101,7 +101,7 @@ fn start_input_loop(handle: Arc<Mutex<GameHandle>>, game_state: Arc<Mutex<GameSt
                 }
             },
             Result::Err(msg) => {
-                println!("Unknown command: {}", input);
+                println!("{}", msg);
             }
         }
     }
@@ -117,7 +117,7 @@ fn parse_command(cmd: &str, tile_coordinates_regex: &Regex) -> Result<Command, S
                 let y: usize = caps.get(2).unwrap().as_str().parse().unwrap();
                 Result::Ok(Command::Tile(x, y))
             },
-            _ => Result::Err("Invalid command!".to_string())
+            _ => Result::Err("Unknown command: ".to_string() + cmd)
         } 
 
     }
