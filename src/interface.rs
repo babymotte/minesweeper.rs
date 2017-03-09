@@ -4,7 +4,6 @@ extern crate time;
 use core;
 use core::{TileState, Difficulty, MineField};
 use time::Tm;
-use std::cell::Cell;
 
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -25,7 +24,7 @@ pub struct TileUpdate {
 pub struct GameHandle {
     level: Difficulty,
     board: Option<MineField>,
-    game_state: Cell<GameState>,
+    game_state: GameState,
 }
 
 impl TileUpdate {
@@ -39,6 +38,11 @@ impl TileUpdate {
 }
 
 impl GameHandle {
+
+    pub fn get_game_state(&self) -> GameState {
+        self.game_state
+    }
+
     pub fn get_width(&self) -> usize {
         core::get_params_for_difficulty(self.level).0
     }
@@ -57,7 +61,7 @@ impl GameHandle {
 
     pub fn give_up(&mut self) {
         let update = GameState::Lost;
-        self.game_state.set(update);
+        self.game_state = update;
     }
 
     pub fn get_tile_state(&self, x: usize, y: usize) -> TileState {
@@ -81,8 +85,7 @@ impl GameHandle {
         match result {
             TileState::Uncovered(0) => self.uncover_nearby_mines(x, y, changes),
             TileState::Detonated => {
-                println!("Detonated! Setting game state to Lost.");
-                self.game_state.set(GameState::Lost);
+                self.game_state = GameState::Lost;
             },
             _ => {}
         }
@@ -91,7 +94,7 @@ impl GameHandle {
     fn init_board(&mut self, x: usize, y: usize) {
         let board: MineField = MineField::new(self.level, x, y);
         self.board = Option::Some(board);
-        self.game_state.set(GameState::Started);
+        self.game_state = GameState::Started;
     }
 
     pub fn uncover(&mut self, x: usize, y: usize) -> Vec<TileUpdate> {
@@ -137,11 +140,11 @@ impl GameHandle {
     }
 }
 
-pub fn start_game(game_state: Cell<GameState>, level: Difficulty) -> GameHandle {
+pub fn start_game(level: Difficulty) -> GameHandle {
 
     GameHandle {
         level: level,
         board: Option::None,
-        game_state: game_state,
+        game_state: GameState::NotStarted,
     }
 }

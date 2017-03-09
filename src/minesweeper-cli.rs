@@ -4,7 +4,6 @@ extern crate regex;
 
 use minesweeper::core::{Difficulty, TileState};
 use minesweeper::interface::{GameHandle, GameState};
-use std::cell::Cell;
 use std::io;
 use regex::Regex;
 
@@ -17,20 +16,17 @@ enum Command {
 
 fn main() {
 
-    let game_state = Cell::new(GameState::NotStarted);
     let level = Difficulty::Beginner;
-    let handle = create_game_handle(game_state.clone(), level);
+    let handle = create_game_handle(level);
 
     print_board(&handle);
 
-    start_input_loop(handle, game_state.clone());
+    let final_state = run_input_loop(handle);
 
-    bye(game_state.get());
+    bye(final_state);
 }
 
-fn finished(game_state: &Cell<GameState>) -> bool {
-    let game_state = game_state.get();
-    println!("Game state: {:?}", game_state);
+fn finished(game_state: GameState) -> bool {
     match game_state {
         GameState::Won|GameState::Lost => true,
         _ => false,
@@ -45,17 +41,17 @@ fn bye(state: GameState) {
     }
 }
 
-fn create_game_handle(game_state: Cell<GameState>, level: Difficulty) -> GameHandle {
-    minesweeper::interface::start_game(game_state, level)
+fn create_game_handle(level: Difficulty) -> GameHandle {
+    minesweeper::interface::start_game(level)
 }
 
-fn start_input_loop(mut handle: GameHandle, game_state: Cell<GameState>) {
+fn run_input_loop(mut handle: GameHandle) -> GameState {
 
     let tile_coordinates_regex: Regex = Regex::new(r"^([0-9]+),([0-9]+)$").unwrap();
 
     let mut cmd = Command::Uncover;
     
-    while !finished(&game_state) {
+    while !finished(handle.get_game_state()) {
 
         println!("Please enter a command or \"help\" to print a list of all available commands:");
 
@@ -88,6 +84,8 @@ fn start_input_loop(mut handle: GameHandle, game_state: Cell<GameState>) {
             }
         }
     }
+
+    handle.get_game_state()
 }
 
 fn parse_command(cmd: &str, tile_coordinates_regex: &Regex) -> Result<Command, String> {
