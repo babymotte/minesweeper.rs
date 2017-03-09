@@ -29,8 +29,10 @@ fn main() {
 }
 
 fn finished(game_state: &Cell<GameState>) -> bool {
-    match game_state.get() {
-        GameState::Won | GameState::Lost => true,
+    let game_state = game_state.get();
+    println!("Game state: {:?}", game_state);
+    match game_state {
+        GameState::Won|GameState::Lost => true,
         _ => false,
     }
 }

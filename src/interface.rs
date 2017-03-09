@@ -81,17 +81,23 @@ impl GameHandle {
         match result {
             TileState::Uncovered(0) => self.uncover_nearby_mines(x, y, changes),
             TileState::Detonated => {
+                println!("Detonated! Setting game state to Lost.");
                 self.game_state.set(GameState::Lost);
             },
             _ => {}
         }
     }
 
+    fn init_board(&mut self, x: usize, y: usize) {
+        let board: MineField = MineField::new(self.level, x, y);
+        self.board = Option::Some(board);
+        self.game_state.set(GameState::Started);
+    }
+
     pub fn uncover(&mut self, x: usize, y: usize) -> Vec<TileUpdate> {
 
         if let Option::None = self.board {
-            let board: MineField = MineField::new(self.level, x, y);
-            self.board = Option::Some(board);
+            self.init_board(x, y);
         }
 
         let mut changes = Vec::new();
@@ -104,8 +110,7 @@ impl GameHandle {
     pub fn toggle_flag(&mut self, x: usize, y: usize) -> TileUpdate {
 
         if let Option::None = self.board {
-            let board: MineField = MineField::new(self.level, x, y);
-            self.board = Option::Some(board);
+            self.init_board(x, y);
         }
 
         let state = self.board.as_mut().unwrap().toggle_flag(x, y);
