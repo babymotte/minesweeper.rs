@@ -4,7 +4,7 @@ extern crate time;
 use core;
 use core::{TileState, Difficulty, MineField};
 use time::Tm;
-use std::rc::Rc;
+use std::cell::Cell;
 
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -25,7 +25,7 @@ pub struct TileUpdate {
 pub struct GameHandle {
     level: Difficulty,
     board: Option<MineField>,
-    game_state: Rc<GameState>,
+    game_state: Cell<GameState>,
 }
 
 impl TileUpdate {
@@ -57,8 +57,7 @@ impl GameHandle {
 
     pub fn give_up(&mut self) {
         let update = GameState::Lost;
-        let mut game_state = Rc::get_mut(&mut self.game_state).unwrap();
-        *game_state = update;
+        self.game_state.set(update);
     }
 
     pub fn get_tile_state(&self, x: usize, y: usize) -> TileState {
@@ -82,8 +81,7 @@ impl GameHandle {
         match result {
             TileState::Uncovered(0) => self.uncover_nearby_mines(x, y, changes),
             TileState::Detonated => {
-                let game_state = Rc::get_mut(&mut self.game_state).unwrap();
-                *game_state = GameState::Lost
+                self.game_state.set(GameState::Lost);
             },
             _ => {}
         }
@@ -138,7 +136,7 @@ impl GameHandle {
     }
 }
 
-pub fn start_game(game_state: Rc<GameState>, level: Difficulty) -> GameHandle {
+pub fn start_game(game_state: Cell<GameState>, level: Difficulty) -> GameHandle {
 
     GameHandle {
         level: level,

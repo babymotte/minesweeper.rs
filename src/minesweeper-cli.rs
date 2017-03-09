@@ -3,11 +3,9 @@ extern crate rand;
 extern crate regex;
 
 use minesweeper::core::{Difficulty, TileState};
-use minesweeper::interface::{GameHandle, TileUpdate, GameState};
-use std::sync::mpsc;
-use std::rc::Rc;
+use minesweeper::interface::{GameHandle, GameState};
+use std::cell::Cell;
 use std::io;
-use std::thread;
 use regex::Regex;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -19,7 +17,7 @@ enum Command {
 
 fn main() {
 
-    let game_state = Rc::new(GameState::NotStarted);
+    let game_state = Cell::new(GameState::NotStarted);
     let level = Difficulty::Beginner;
     let handle = create_game_handle(game_state.clone(), level);
 
@@ -27,11 +25,11 @@ fn main() {
 
     start_input_loop(handle, game_state.clone());
 
-    bye(*game_state);
+    bye(game_state.get());
 }
 
-fn finished(game_state: &Rc<GameState>) -> bool {
-    match **game_state {
+fn finished(game_state: &Cell<GameState>) -> bool {
+    match game_state.get() {
         GameState::Won | GameState::Lost => true,
         _ => false,
     }
@@ -45,11 +43,11 @@ fn bye(state: GameState) {
     }
 }
 
-fn create_game_handle(game_state: Rc<GameState>, level: Difficulty) -> GameHandle {
+fn create_game_handle(game_state: Cell<GameState>, level: Difficulty) -> GameHandle {
     minesweeper::interface::start_game(game_state, level)
 }
 
-fn start_input_loop(mut handle: GameHandle, game_state: Rc<GameState>) {
+fn start_input_loop(mut handle: GameHandle, game_state: Cell<GameState>) {
 
     let tile_coordinates_regex: Regex = Regex::new(r"^([0-9]+),([0-9]+)$").unwrap();
 
