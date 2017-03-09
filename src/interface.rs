@@ -4,7 +4,7 @@ extern crate time;
 use core;
 use core::{TileState, Difficulty, MineField};
 use time::Tm;
-use std::sync::mpsc::Sender;
+use std::rc::Rc;
 
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -25,8 +25,7 @@ pub struct TileUpdate {
 pub struct GameHandle {
     level: Difficulty,
     board: Option<MineField>,
-    tile_update_sender: Sender<Vec<TileUpdate>>,
-    game_update_sender: Sender<GameState>,
+    game_state: Rc<GameState>,
 }
 
 impl TileUpdate {
@@ -56,10 +55,10 @@ impl GameHandle {
         &self.board
     }
 
-    pub fn give_up(&self) {
-        let interface = &self.game_update_sender;
+    pub fn give_up(&mut self) {
         let update = GameState::Lost;
-        interface.send(update).unwrap();
+        let mut game_state = Rc::get_mut(&mut self.game_state).unwrap();
+        *game_state = update;
     }
 
     pub fn get_tile_state(&self, x: usize, y: usize) -> TileState {
@@ -80,8 +79,17 @@ impl GameHandle {
 
         changes.push(TileUpdate::new(x, y, result));
 
+        match result {
+            TileState::Uncovered(0) => self.uncover_nearby_mines(x, y, changes),
+            TileState::Detonated => {
+                let game_state = Rc::get_mut(&mut self.game_state).unwrap();
+                *game_state = GameState::Lost
+            },
+            _ => {}
+        }
+
         if let TileState::Uncovered(0) = result {
-            self.uncover_nearby_mines(x, y, changes);
+            ;
         }
     }
 
@@ -130,12 +138,11 @@ impl GameHandle {
     }
 }
 
-pub fn start_game(tile_update_sender: Sender<Vec<TileUpdate>>, game_update_sender: Sender<GameState>, level: Difficulty) -> GameHandle {
+pub fn start_game(game_state: Rc<GameState>, level: Difficulty) -> GameHandle {
 
     GameHandle {
         level: level,
         board: Option::None,
-        tile_update_sender: tile_update_sender,
-        game_update_sender: game_update_sender,
+        game_state: game_state,
     }
 }

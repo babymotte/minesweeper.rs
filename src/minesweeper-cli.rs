@@ -5,10 +5,9 @@ extern crate regex;
 use minesweeper::core::{Difficulty, TileState};
 use minesweeper::interface::{GameHandle, TileUpdate, GameState};
 use std::sync::mpsc;
+use std::rc::Rc;
 use std::io;
 use std::thread;
-use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Receiver, Sender};
 use regex::Regex;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -20,38 +19,22 @@ enum Command {
 
 fn main() {
 
+    let game_state = Rc::new(GameState::NotStarted);
     let level = Difficulty::Beginner;
-    let (tile_tx, tile_rx) = mpsc::channel();
-    let (game_tx, game_rx) = mpsc::channel();
-    let handle = create_game_handle(tile_tx.clone(), game_tx.clone(), level);
+    let handle = create_game_handle(game_state.clone(), level);
 
     print_board(&handle);
 
-    let game_state = Arc::new(Mutex::new(GameState::NotStarted));
-    let handle = Arc::new(Mutex::new(handle));
+    start_input_loop(handle, game_state.clone());
 
-    start_game_state_listener(game_rx, game_state.clone());
-    start_input_loop(handle.clone(), game_state.clone());
-
-    bye(*game_state.lock().unwrap());
+    bye(*game_state);
 }
 
-fn finished(game_state: &Arc<Mutex<GameState>>) -> bool {
-    match *game_state.lock().unwrap() {
+fn finished(game_state: &Rc<GameState>) -> bool {
+    match **game_state {
         GameState::Won | GameState::Lost => true,
         _ => false,
     }
-}
-
-fn start_game_state_listener(game_rx: Receiver<GameState>, game_state: Arc<Mutex<GameState>>) {
-    thread::spawn(move || game_state_loop(game_rx, game_state));
-}
-
-fn game_state_loop(game_rx: Receiver<GameState>, game_state: Arc<Mutex<GameState>>) {
-     while !finished(&game_state) {
-        let update = game_rx.recv().unwrap();
-        *game_state.lock().unwrap() = update;
-     }
 }
 
 fn bye(state: GameState) {
@@ -62,11 +45,11 @@ fn bye(state: GameState) {
     }
 }
 
-fn create_game_handle(tile_update_sender: Sender<Vec<TileUpdate>>, game_update_sender: Sender<GameState>, level: Difficulty) -> GameHandle {
-    minesweeper::interface::start_game(tile_update_sender, game_update_sender, level)
+fn create_game_handle(game_state: Rc<GameState>, level: Difficulty) -> GameHandle {
+    minesweeper::interface::start_game(game_state, level)
 }
 
-fn start_input_loop(handle: Arc<Mutex<GameHandle>>, game_state: Arc<Mutex<GameState>>) {
+fn start_input_loop(mut handle: GameHandle, game_state: Rc<GameState>) {
 
     let tile_coordinates_regex: Regex = Regex::new(r"^([0-9]+),([0-9]+)$").unwrap();
 
@@ -74,7 +57,7 @@ fn start_input_loop(handle: Arc<Mutex<GameHandle>>, game_state: Arc<Mutex<GameSt
     
     while !finished(&game_state) {
 
-        println!("Please enter a command er \"help\" to print a list of all available commands:");
+        println!("Please enter a command or \"help\" to print a list of all available commands:");
 
         let mut input = String::new();
         io::stdin().read_line(&mut input).expect("Failed to read line");
@@ -85,12 +68,12 @@ fn start_input_loop(handle: Arc<Mutex<GameHandle>>, game_state: Arc<Mutex<GameSt
                 match new_cmd {
                     Command::Tile(x,y) => match cmd {
                         Command::Uncover => {
-                            handle.lock().unwrap().uncover(x, y);
-                            print_board(&*handle.lock().unwrap());
+                            handle.uncover(x, y);
+                            print_board(&handle);
                         },
                         Command::Flag => {
-                            handle.lock().unwrap().toggle_flag(x, y);
-                            print_board(&*handle.lock().unwrap());
+                            handle.toggle_flag(x, y);
+                            print_board(&handle);
                         },
                         _ => panic!("Illegal state!"),
                     },
