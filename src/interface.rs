@@ -93,6 +93,10 @@ impl GameHandle {
         let mut board = self.board.as_mut().unwrap();
 
         board.toggle_flag(x, y);
+
+        let interface = &self.interface;
+        let update = UiUpdate::TileUpdate(x, y, board.get_tile_state(x, y));
+        interface.send(update).unwrap();
     }
 
     fn uncover_nearby_mines(&mut self, x: usize, y: usize) {
