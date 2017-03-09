@@ -85,10 +85,6 @@ impl GameHandle {
             },
             _ => {}
         }
-
-        if let TileState::Uncovered(0) = result {
-            ;
-        }
     }
 
     pub fn uncover(&mut self, x: usize, y: usize) -> Vec<TileUpdate> {
