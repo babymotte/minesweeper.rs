@@ -3,13 +3,15 @@ extern crate rand;
 extern crate regex;
 
 use minesweeper::core::{Difficulty, TileState};
-use minesweeper::interface::{GameHandle, UiUpdate, GameState};
+use minesweeper::interface::{GameHandle, TileUpdate, GameState};
 use std::sync::mpsc;
 use std::io;
 use std::thread;
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Receiver, Sender};
 use regex::Regex;
 
+#[derive(PartialEq, Debug, Copy, Clone)]
 enum Command {
     Uncover,
     Flag,
@@ -18,53 +20,61 @@ enum Command {
 
 fn main() {
 
-    let (tx, rx) = mpsc::channel();
+    let level = Difficulty::Beginner;
+    let (tile_tx, tile_rx) = mpsc::channel();
+    let (game_tx, game_rx) = mpsc::channel();
+    let handle = create_game_handle(tile_tx.clone(), game_tx.clone(), level);
 
-    let handle = minesweeper::interface::start_game(tx.clone(), Difficulty::Beginner);
-
-    println!("");
     print_board(&handle);
-    println!("");
 
-    let lost = Arc::new(Mutex::new(false));
+    let game_state = Arc::new(Mutex::new(GameState::NotStarted));
     let handle = Arc::new(Mutex::new(handle));
-    let cmd = Arc::new(Mutex::new(Command::Uncover));
 
-    start_input_thread(handle.clone(), cmd.clone(), lost.clone());
+    start_game_state_listener(game_rx, game_state.clone());
+    start_input_loop(handle.clone(), game_state.clone());
 
-    while !*lost.lock().unwrap() {
-        println!("Eval loop");
-        prompt_input(&cmd);
-        let update = rx.recv().unwrap();
-        println!("Received event!");
-        *lost.lock().unwrap() = eval_update(update, &handle.lock().unwrap());
-    }
+    bye(*game_state.lock().unwrap());
+}
 
-    if *lost.lock().unwrap() {
-        println!("You are dead!")
-    } else {
-        println!("Congratulations! You won!")
+fn finished(game_state: &Arc<Mutex<GameState>>) -> bool {
+    match *game_state.lock().unwrap() {
+        GameState::Won | GameState::Lost => true,
+        _ => false,
     }
 }
 
-fn prompt_input(cmd: &Arc<Mutex<Command>>) {
-    let cmd = cmd.lock().unwrap();
-    match *cmd {
-           Command::Uncover => println!("Please enter the field you want to uncover in the form 'x,y':"),
-           Command::Flag => println!("Please enter the field you want to mark with a flag in the form 'x,y':"),
-           _ => panic!("Illegal state!")
+fn start_game_state_listener(game_rx: Receiver<GameState>, game_state: Arc<Mutex<GameState>>) {
+    thread::spawn(move || game_state_loop(game_rx, game_state));
+}
+
+fn game_state_loop(game_rx: Receiver<GameState>, game_state: Arc<Mutex<GameState>>) {
+     while !finished(&game_state) {
+        let update = game_rx.recv().unwrap();
+        *game_state.lock().unwrap() = update;
+     }
+}
+
+fn bye(state: GameState) {
+    match state {
+        GameState::Won => println!("Congratulations! You won!"),
+        GameState::Lost => println!("You are dead!"),
+        _ => println!("You're neither dead nor have you won, yet somehow this game is over. Weird. ({:?})", state),
     }
 }
 
-fn start_input_thread(handle: Arc<Mutex<GameHandle>>, cmd: Arc<Mutex<Command>>, lost: Arc<Mutex<bool>>) {
-    thread::spawn(move || interactive_loop(handle, cmd, lost));
+fn create_game_handle(tile_update_sender: Sender<Vec<TileUpdate>>, game_update_sender: Sender<GameState>, level: Difficulty) -> GameHandle {
+    minesweeper::interface::start_game(tile_update_sender, game_update_sender, level)
 }
 
-fn interactive_loop(handle: Arc<Mutex<GameHandle>>, cmd: Arc<Mutex<Command>>, lost: Arc<Mutex<bool>>) {
+fn start_input_loop(handle: Arc<Mutex<GameHandle>>, game_state: Arc<Mutex<GameState>>) {
 
     let tile_coordinates_regex: Regex = Regex::new(r"^([0-9]+),([0-9]+)$").unwrap();
+
+    let mut cmd = Command::Uncover;
     
-    while !*lost.lock().unwrap() {
+    while !finished(&game_state) {
+
+        println!("Please enter a command er \"help\" to print a list of all available commands:");
 
         let mut input = String::new();
         io::stdin().read_line(&mut input).expect("Failed to read line");
@@ -72,17 +82,27 @@ fn interactive_loop(handle: Arc<Mutex<GameHandle>>, cmd: Arc<Mutex<Command>>, lo
 
         match new_cmd {
             Result::Ok(new_cmd) => {
-                let mut cmd = cmd.lock().unwrap();
                 match new_cmd {
-                    Command::Tile(x,y) => match *cmd {
-                        Command::Uncover => handle.lock().unwrap().uncover(x, y),
-                        Command::Flag => handle.lock().unwrap().toggle_flag(x, y),
-                        _ => panic!("Illegal state!")
+                    Command::Tile(x,y) => match cmd {
+                        Command::Uncover => {
+                            handle.lock().unwrap().uncover(x, y);
+                            print_board(&*handle.lock().unwrap());
+                        },
+                        Command::Flag => {
+                            handle.lock().unwrap().toggle_flag(x, y);
+                            print_board(&*handle.lock().unwrap());
+                        },
+                        _ => panic!("Illegal state!"),
                     },
-                    _ => *cmd = new_cmd
+                    _ => {
+                        cmd = new_cmd;
+                        println!("Switching to command mode {:?}", new_cmd);
+                    }
                 }
             },
-            Result::Err(msg) => panic!(msg)
+            Result::Err(msg) => {
+                println!("Unknown command: {}", input);
+            }
         }
     }
 }
@@ -103,27 +123,16 @@ fn parse_command(cmd: &str, tile_coordinates_regex: &Regex) -> Result<Command, S
     }
 }
 
-fn eval_update(update: UiUpdate, handle: &GameHandle) -> bool {
-
-    println!("");
-    print_board(handle);
-    println!("");
-    match update {
-        UiUpdate::GameStateUpdate(state) => state == GameState::Lost,
-        _ => false,
-    }
-}
-
 fn print_board(handle: &GameHandle) {
 
     println!("");
-
     for y in 0..handle.get_height() {
         for x in 0..handle.get_width() {
             print(handle.get_tile_state(x, y));
         }
         println!("");
     }
+    println!("");
 }
 
 fn print(state: TileState) {

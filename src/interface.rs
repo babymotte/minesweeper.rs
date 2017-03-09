@@ -16,16 +16,27 @@ pub enum GameState {
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub enum UiUpdate {
-    TileUpdate(usize, usize, TileState),
-    TimeUpdate(Tm),
-    GameStateUpdate(GameState),
+pub struct TileUpdate {
+    x: usize,
+    y: usize,
+    state: TileState
 }
 
 pub struct GameHandle {
     level: Difficulty,
     board: Option<MineField>,
-    interface: Sender<UiUpdate>,
+    tile_update_sender: Sender<Vec<TileUpdate>>,
+    game_update_sender: Sender<GameState>,
+}
+
+impl TileUpdate {
+    fn new(x: usize, y: usize, state: TileState) -> TileUpdate {
+        TileUpdate{
+            x: x,
+            y: y,
+            state: state
+        }
+    }
 }
 
 impl GameHandle {
@@ -45,6 +56,12 @@ impl GameHandle {
         &self.board
     }
 
+    pub fn give_up(&self) {
+        let interface = &self.game_update_sender;
+        let update = GameState::Lost;
+        interface.send(update).unwrap();
+    }
+
     pub fn get_tile_state(&self, x: usize, y: usize) -> TileState {
         match self.board {
             Option::None => TileState::Covered,
@@ -52,54 +69,48 @@ impl GameHandle {
         }
     }
 
-    pub fn uncover(&mut self, x: usize, y: usize) {
+    fn do_unvocer(&mut self, x: usize, y: usize) -> TileState {
+        let mut board = self.board.as_mut().unwrap();
+        board.uncover(x, y)
+    }
+
+    fn uncover_impl(&mut self, x: usize, y: usize, changes: &mut Vec<TileUpdate>) {
+
+        let result = self.do_unvocer(x, y);
+
+        changes.push(TileUpdate::new(x, y, result));
+
+        if let TileState::Uncovered(0) = result {
+            self.uncover_nearby_mines(x, y, changes);
+        }
+    }
+
+    pub fn uncover(&mut self, x: usize, y: usize) -> Vec<TileUpdate> {
 
         if let Option::None = self.board {
             let board: MineField = MineField::new(self.level, x, y);
             self.board = Option::Some(board);
         }
 
-        let result = {
-            let mut board = self.board.as_mut().unwrap();
-            board.uncover(x, y)
-        };
+        let mut changes = Vec::new();
+        self.uncover_impl(x, y, &mut changes);
 
-        match result {
-            TileState::Uncovered(mine_count) => {
-                {
-                    let interface = &self.interface;
-                    let update = UiUpdate::TileUpdate(x, y, result);
-                    interface.send(update).unwrap();
-                }
-                if mine_count == 0 {
-                    self.uncover_nearby_mines(x, y);
-                }
-            }
-            TileState::Detonated => {
-                let interface = &self.interface;
-                let update = UiUpdate::GameStateUpdate(GameState::Lost);
-                interface.send(update).unwrap();
-            }
-            _ => {}
-        };
+        changes
+        
     }
 
-    pub fn toggle_flag(&mut self, x: usize, y: usize) {
+    pub fn toggle_flag(&mut self, x: usize, y: usize) -> TileUpdate {
 
         if let Option::None = self.board {
-            return;
+            let board: MineField = MineField::new(self.level, x, y);
+            self.board = Option::Some(board);
         }
 
-        let mut board = self.board.as_mut().unwrap();
-
-        board.toggle_flag(x, y);
-
-        let interface = &self.interface;
-        let update = UiUpdate::TileUpdate(x, y, board.get_tile_state(x, y));
-        interface.send(update).unwrap();
+        let state = self.board.as_mut().unwrap().toggle_flag(x, y);
+        TileUpdate::new(x, y, state)
     }
 
-    fn uncover_nearby_mines(&mut self, x: usize, y: usize) {
+    fn uncover_nearby_mines(&mut self, x: usize, y: usize, changes: &mut Vec<TileUpdate>) {
 
         let mut uncover = Vec::<(usize, usize)>::new();
 
@@ -107,23 +118,24 @@ impl GameHandle {
             let neighbors = board.get_nearby_coordinates(x, y);
             let filtered = neighbors.iter().filter(|c| {
                 let tile = board.get_tile(c.0, c.1);
-                tile.get_state() == TileState::Covered && tile.get_nearby_mines() == 0
+                tile.get_state() == TileState::Covered
             });
             for c in filtered {
                 uncover.push(*c);
             }
         }
         for c in uncover {
-            self.uncover(c.0, c.1);
+            self.uncover_impl(c.0, c.1, changes);
         }
     }
 }
 
-pub fn start_game(interface: Sender<UiUpdate>, level: Difficulty) -> GameHandle {
+pub fn start_game(tile_update_sender: Sender<Vec<TileUpdate>>, game_update_sender: Sender<GameState>, level: Difficulty) -> GameHandle {
 
     GameHandle {
         level: level,
         board: Option::None,
-        interface: interface,
+        tile_update_sender: tile_update_sender,
+        game_update_sender: game_update_sender,
     }
 }
