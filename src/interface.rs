@@ -83,10 +83,26 @@ impl GameHandle {
 
         match result {
             TileState::Uncovered(0) => self.uncover_nearby_mines(x, y, changes),
-            TileState::Detonated => {
-                self.game_state = GameState::Lost;
-            },
+            TileState::Detonated => self.game_state = GameState::Lost,
             _ => {}
+        }
+
+        if self.has_won() {
+            self.game_state = GameState::Won;
+        }
+    }
+
+    fn has_won(&self) -> bool {
+
+        match self.game_state {
+            GameState::Won => true,
+            GameState::Lost | GameState::NotStarted=> false,
+            GameState::Started => {
+                match self.board {
+                    Option::Some(ref board) => board.is_clear(),
+                    _ => false
+                }
+            }
         }
     }
 

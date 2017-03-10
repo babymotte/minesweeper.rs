@@ -70,6 +70,18 @@ impl MineField {
         mf
     }
 
+    pub fn is_clear(&self) -> bool {
+        for t in &self.tiles {
+            match t.state {
+                TileState::Detonated => return false,
+                TileState::Covered if !t.mine => return false,
+                TileState::Marked if !t.mine => return false,
+                _ => {}
+            }
+        }
+        true
+    }
+
     pub fn get_width(&self) -> usize {
         self.width
     }
