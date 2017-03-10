@@ -92,7 +92,7 @@ impl MineField {
         let mut tile = self.get_mut_tile(x, y);
 
         match tile.state {
-            TileState::Covered => do_uncover(tile),
+            TileState::Covered => uncover(tile),
             _ => TileState::NoOp,
         }
     }
@@ -102,14 +102,8 @@ impl MineField {
         let tile = self.get_mut_tile(x, y);
 
         match tile.state {
-            TileState::Covered => {
-                tile.state = TileState::Marked;
-                TileState::Marked
-            }
-            TileState::Marked => {
-                tile.state = TileState::Covered;
-                TileState::Covered
-            }
+            TileState::Covered => set_flag(tile),
+            TileState::Marked => remove_flag(tile),
             _ => TileState::NoOp,
         }
     }
@@ -119,6 +113,11 @@ impl MineField {
         &self.tiles[i]
     }
 
+    pub fn get_nearby_coordinates(&self, x: usize, y: usize) -> Vec<(usize, usize)> {
+        let nearby_indices = self.get_nearby_indices(x as i8, y as i8);
+        nearby_indices.iter().map(|i| (i % self.get_width() as usize, i / self.get_width() as usize)).collect()
+    }
+
     fn get_mut_tile(&mut self, x: usize, y: usize) -> &mut Tile {
         let i = self.to_index(x, y);
         &mut self.tiles[i]
@@ -126,30 +125,21 @@ impl MineField {
 
     fn fill(&mut self, mines: usize, blank_x: usize, blank_y: usize) {
 
-        let mine_coordinates = {
-            let all_indices = 0..self.width * self.height;
-            let all_coordinates = all_indices.map(|i| (i % self.width, i / self.width));
-            let filtered_coordinates = all_coordinates.filter(|c| c.0 != blank_x || c.1 != blank_y);
-            rand::sample(&mut rand::thread_rng(), filtered_coordinates, mines)
-        };
+        let width = self.width;
+        let height = self.height;
 
-        for y in 0..self.height {
-            for x in 0..self.width {
-                let mine = mine_coordinates.contains(&(x, y));
-                self.tiles.push(Tile {
-                    state: TileState::Covered,
-                    x: x,
-                    y: y,
-                    mine: mine,
-                    nearby_mines: 0,
-                });
-            }
-        }
+        let mine_coordinates = generate_mine_coordinates(width, height, mines, blank_x, blank_y);
+
+        create_tiles(&mut self.tiles, width, height, mine_coordinates);
+
+        self.update_nearby_mine_counts();
+    }
+
+    fn update_nearby_mine_counts(&mut self) {
 
         for i in 0..self.tiles.len() {
             self.tiles[i].nearby_mines = self.count_nearby_mines(&self.tiles[i]);
         }
-
     }
 
     fn count_nearby_mines(&self, tile: &Tile) -> u8 {
@@ -168,11 +158,6 @@ impl MineField {
         is.collect()
     }
 
-    pub fn get_nearby_coordinates(&self, x: usize, y: usize) -> Vec<(usize, usize)> {
-        let nearby_indices = self.get_nearby_indices(x as i8, y as i8);
-        nearby_indices.iter().map(|i| (i % self.get_width() as usize, i / self.get_width() as usize)).collect()
-    }
-
     fn to_index(&self, x: usize, y: usize) -> usize {
         y * self.width + x
     }
@@ -186,6 +171,32 @@ pub fn get_params_for_difficulty(level: Difficulty) -> (usize, usize, usize) {
         Difficulty::Expert => (30, 16, 99),
         Difficulty::Custom(w, h, m) => (w, h, m),
     }
+}
+
+fn generate_mine_coordinates(width: usize, height: usize, mines: usize, blank_x: usize, blank_y: usize) -> Vec<(usize, usize)> {
+    let all_indices = 0..width * height;
+    let all_coordinates = all_indices.map(|i| (i % width, i / width));
+    let filtered_coordinates = all_coordinates.filter(|c| c.0 != blank_x || c.1 != blank_y);
+    rand::sample(&mut rand::thread_rng(), filtered_coordinates, mines)
+}
+
+fn create_tiles(tiles: &mut Vec<Tile>, width: usize, height: usize, mine_coordinates: Vec<(usize, usize)>) {
+    for y in 0..height {
+        for x in 0..width {
+            create_tile(tiles, x, y, &mine_coordinates);
+        }
+    }
+}
+
+fn create_tile(tiles: &mut Vec<Tile>, x: usize, y: usize, mine_coordinates: &Vec<(usize, usize)>) {
+    let mine = mine_coordinates.contains(&(x, y));
+    tiles.push(Tile {
+        state: TileState::Covered,
+        x: x,
+        y: y,
+        mine: mine,
+        nearby_mines: 0,
+    });
 }
 
 fn is_clear(tiles: &Vec<Tile>) -> bool {
@@ -207,7 +218,7 @@ fn is_tile_clear(tile: &Tile) -> bool {
     }
 }
 
-fn do_uncover(tile: &mut Tile) -> TileState {
+fn uncover(tile: &mut Tile) -> TileState {
     if tile.mine {
         tile.detonate();
         TileState::Detonated
@@ -215,4 +226,14 @@ fn do_uncover(tile: &mut Tile) -> TileState {
         tile.uncover();
         TileState::Uncovered(tile.nearby_mines)
     }
+}
+
+fn set_flag(tile: &mut Tile) -> TileState {
+    tile.state = TileState::Marked;
+    TileState::Marked
+}
+
+fn remove_flag(tile: &mut Tile) -> TileState {
+    tile.state = TileState::Covered;
+    TileState::Covered
 }
