@@ -12,7 +12,7 @@ enum Command {
     Uncover,
     Flag,
     Tile(usize, usize),
-    NoOp
+    NoOp,
 }
 
 fn main() {
@@ -29,7 +29,7 @@ fn main() {
 
 fn finished(game_state: GameState) -> bool {
     match game_state {
-        GameState::Won|GameState::Lost => true,
+        GameState::Won | GameState::Lost => true,
         _ => false,
     }
 }
@@ -38,7 +38,11 @@ fn bye(state: GameState) {
     match state {
         GameState::Won => println!("Congratulations! You won!"),
         GameState::Lost => println!("You are dead!"),
-        _ => println!("You're neither dead nor have you won, yet somehow this game is over. Weird. ({:?})", state),
+        _ => {
+            println!("You're neither dead nor have you won, yet somehow this game is over. Weird. \
+                      ({:?})",
+                     state)
+        }
     }
 }
 
@@ -47,7 +51,7 @@ fn run_input_loop(mut handle: GameHandle) -> GameState {
     let tile_coordinates_regex: Regex = Regex::new(r"^([0-9]+),([0-9]+)$").unwrap();
 
     let mut cmd = Command::Uncover;
-    
+
     while !finished(handle.get_game_state()) {
 
         println!("Please enter a command or \"help\" to print a list of all available commands:");
@@ -59,24 +63,26 @@ fn run_input_loop(mut handle: GameHandle) -> GameState {
         match new_cmd {
             Result::Ok(new_cmd) => {
                 match new_cmd {
-                    Command::Tile(x,y) => match cmd {
-                        Command::Uncover => {
-                            handle.uncover(x, y);
-                            print_board(&handle);
-                        },
-                        Command::Flag => {
-                            handle.toggle_flag(x, y);
-                            print_board(&handle);
-                        },
-                        _ => panic!("Illegal state!"),
-                    },
-                    Command::NoOp => {},
+                    Command::Tile(x, y) => {
+                        match cmd {
+                            Command::Uncover => {
+                                handle.uncover(x, y);
+                                print_board(&handle);
+                            }
+                            Command::Flag => {
+                                handle.toggle_flag(x, y);
+                                print_board(&handle);
+                            }
+                            _ => panic!("Illegal state!"),
+                        }
+                    }
+                    Command::NoOp => {}
                     _ => {
                         cmd = new_cmd;
                         println!("Switching to command mode {:?}", new_cmd);
                     }
                 }
-            },
+            }
             Result::Err(msg) => {
                 println!("{}", msg);
             }
@@ -91,13 +97,15 @@ fn parse_command(cmd: &str, tile_coordinates_regex: &Regex) -> Result<Command, S
         "u" | "uncover" => Result::Ok(Command::Uncover),
         "f" | "flag" => Result::Ok(Command::Flag),
         "h" | "help" => print_help(),
-        _ => match tile_coordinates_regex.captures(cmd) {
-            Option::Some(caps) => {
-                let x: usize = caps.get(1).unwrap().as_str().parse().unwrap();
-                let y: usize = caps.get(2).unwrap().as_str().parse().unwrap();
-                Result::Ok(Command::Tile(x, y))
-            },
-            _ => Result::Err("Unknown command: ".to_string() + cmd)
+        _ => {
+            match tile_coordinates_regex.captures(cmd) {
+                Option::Some(caps) => {
+                    let x: usize = caps.get(1).unwrap().as_str().parse().unwrap();
+                    let y: usize = caps.get(2).unwrap().as_str().parse().unwrap();
+                    Result::Ok(Command::Tile(x, y))
+                }
+                _ => Result::Err("Unknown command: ".to_string() + cmd),
+            }
         } 
 
     }
@@ -108,9 +116,12 @@ fn print_help() -> Result<Command, String> {
     println!("");
     println!("Available commands:");
     println!("");
-    println!(" <x>,<y>\t\tPerform an action on the field with the given x and y\n\t\t\tcoordinates. The action depends on the current mode.\n");
-    println!(" u | uncover\t\tChange to uncover mode.\n\t\t\tEntering coordinates will uncover the mine at that\n\t\t\tposition (default in a new game).\n");
-    println!(" f | flag\t\tChange to flag mode.\n\t\t\tEntering coordinates will mark the mine at that\n\t\t\tposition with a flag.\n");
+    println!(" <x>,<y>\t\tPerform an action on the field with the given x and \
+              y\n\t\t\tcoordinates. The action depends on the current mode.\n");
+    println!(" u | uncover\t\tChange to uncover mode.\n\t\t\tEntering coordinates will uncover \
+              the mine at that\n\t\t\tposition (default in a new game).\n");
+    println!(" f | flag\t\tChange to flag mode.\n\t\t\tEntering coordinates will mark the mine \
+              at that\n\t\t\tposition with a flag.\n");
     println!(" h | help\t\tShow this message.\n");
     println!("");
 

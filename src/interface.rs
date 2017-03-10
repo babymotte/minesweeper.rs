@@ -17,7 +17,7 @@ pub enum GameState {
 pub struct TileUpdate {
     x: usize,
     y: usize,
-    state: TileState
+    state: TileState,
 }
 
 pub struct GameHandle {
@@ -28,16 +28,15 @@ pub struct GameHandle {
 
 impl TileUpdate {
     fn new(x: usize, y: usize, state: TileState) -> TileUpdate {
-        TileUpdate{
+        TileUpdate {
             x: x,
             y: y,
-            state: state
+            state: state,
         }
     }
 }
 
 impl GameHandle {
-
     pub fn new(level: Difficulty) -> GameHandle {
         GameHandle {
             level: level,
@@ -104,11 +103,11 @@ impl GameHandle {
 
         match self.game_state {
             GameState::Won => true,
-            GameState::Lost | GameState::NotStarted=> false,
+            GameState::Lost | GameState::NotStarted => false,
             GameState::Started => {
                 match self.board {
                     Option::Some(ref board) => board.is_clear(),
-                    _ => false
+                    _ => false,
                 }
             }
         }
@@ -130,7 +129,7 @@ impl GameHandle {
         self.uncover_impl(x, y, &mut changes);
 
         changes
-        
+
     }
 
     pub fn toggle_flag(&mut self, x: usize, y: usize) -> TileUpdate {
