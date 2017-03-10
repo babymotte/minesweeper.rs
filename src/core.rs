@@ -55,31 +55,24 @@ impl Tile {
 
 
 impl MineField {
+
     pub fn new(level: Difficulty, blank_x: usize, blank_y: usize) -> MineField {
 
-        let params = get_params_for_difficulty(level);
+        let game_parameters = get_params_for_difficulty(level);
 
         let mut mf = MineField {
             tiles: Vec::new(),
-            width: params.0,
-            height: params.1,
+            width: game_parameters.0,
+            height: game_parameters.1,
         };
 
-        mf.fill(params.2, blank_x, blank_y);
+        mf.fill(game_parameters.2, blank_x, blank_y);
 
         mf
     }
 
     pub fn is_clear(&self) -> bool {
-        for t in &self.tiles {
-            match t.state {
-                TileState::Detonated => return false,
-                TileState::Covered if !t.mine => return false,
-                TileState::Marked if !t.mine => return false,
-                _ => {}
-            }
-        }
-        true
+        is_clear(&self.tiles)
     }
 
     pub fn get_width(&self) -> usize {
@@ -99,15 +92,7 @@ impl MineField {
         let mut tile = self.get_mut_tile(x, y);
 
         match tile.state {
-            TileState::Covered => {
-                if tile.mine {
-                    tile.detonate();
-                    TileState::Detonated
-                } else {
-                    tile.uncover();
-                    TileState::Uncovered(tile.nearby_mines)
-                }
-            }
+            TileState::Covered => do_uncover(tile),
             _ => TileState::NoOp,
         }
     }
@@ -176,8 +161,7 @@ impl MineField {
     }
 
     fn get_nearby_indices(&self, x: i8, y: i8) -> Vec<usize> {
-        let os: [(i8, i8); 8] = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1),
-                                 (1, 1)];
+        let os: [(i8, i8); 8] = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)];
         let cs = os.iter().map(|o| ((x + o.0) as usize, (y + o.1) as usize));
         let filtered_cs = cs.filter(|c| c.0 < self.width && c.1 < self.height);
         let is = filtered_cs.map(|c| self.to_index(c.0, c.1));
@@ -201,5 +185,34 @@ pub fn get_params_for_difficulty(level: Difficulty) -> (usize, usize, usize) {
         Difficulty::Intermediate => (16, 16, 40),
         Difficulty::Expert => (30, 16, 99),
         Difficulty::Custom(w, h, m) => (w, h, m),
+    }
+}
+
+fn is_clear(tiles: &Vec<Tile>) -> bool {
+    for t in tiles {
+        if !is_tile_clear(t) {
+            return false;
+        }
+    }
+    true
+}
+
+fn is_tile_clear(tile: &Tile) -> bool {
+    match tile.state {
+        TileState::Detonated => false,
+        TileState::Covered if !tile.mine => false,
+        TileState::Marked if !tile.mine => false,
+        TileState::NoOp => panic!("Found tile with NoOp state. This doesn't make sense."),
+        _ => true
+    }
+}
+
+fn do_uncover(tile: &mut Tile) -> TileState {
+    if tile.mine {
+        tile.detonate();
+        TileState::Detonated
+    } else {
+        tile.uncover();
+        TileState::Uncovered(tile.nearby_mines)
     }
 }

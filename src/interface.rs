@@ -38,6 +38,14 @@ impl TileUpdate {
 
 impl GameHandle {
 
+    pub fn new(level: Difficulty) -> GameHandle {
+        GameHandle {
+            level: level,
+            board: Option::None,
+            game_state: GameState::NotStarted,
+        }
+    }
+
     pub fn get_game_state(&self) -> GameState {
         self.game_state
     }
@@ -152,14 +160,5 @@ impl GameHandle {
         for c in uncover {
             self.uncover_impl(c.0, c.1, changes);
         }
-    }
-}
-
-pub fn start_game(level: Difficulty) -> GameHandle {
-
-    GameHandle {
-        level: level,
-        board: Option::None,
-        game_state: GameState::NotStarted,
     }
 }

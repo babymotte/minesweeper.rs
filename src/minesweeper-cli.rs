@@ -18,7 +18,7 @@ enum Command {
 fn main() {
 
     let level = Difficulty::Beginner;
-    let handle = create_game_handle(level);
+    let handle = GameHandle::new(level);
 
     print_board(&handle);
 
@@ -40,10 +40,6 @@ fn bye(state: GameState) {
         GameState::Lost => println!("You are dead!"),
         _ => println!("You're neither dead nor have you won, yet somehow this game is over. Weird. ({:?})", state),
     }
-}
-
-fn create_game_handle(level: Difficulty) -> GameHandle {
-    minesweeper::interface::start_game(level)
 }
 
 fn run_input_loop(mut handle: GameHandle) -> GameState {
