@@ -116,7 +116,7 @@ fn print_help() -> Result<Command, String> {
     println!("");
     println!("Available commands:");
     println!("");
-    println!(" <x>,<y>\t\tPerform an action on the field with the given x and \
+    println!(" <x>,<y>\t\tPerform an action on the tile with the given x and \
               y\n\t\t\tcoordinates. The action depends on the current mode.\n");
     println!(" u | uncover\t\tChange to uncover mode.\n\t\t\tEntering coordinates will uncover \
               the mine at that\n\t\t\tposition (default in a new game).\n");
