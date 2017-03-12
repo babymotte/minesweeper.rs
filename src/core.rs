@@ -81,6 +81,16 @@ impl MineField {
         self.height
     }
 
+    pub fn get_mine_count(&self) -> usize {
+        self.tiles.iter().fold(0, |i, t| if t.mine {i + 1} else {i})
+    }
+
+    pub fn get_unmarked_mine_count(&self) -> usize {
+        let mine_count = self.get_mine_count();
+        let flag_count = self.tiles.iter().fold(0, |i, t| if t.state == TileState::Marked {i + 1} else {i});
+        mine_count - flag_count
+    }
+
     pub fn get_tile_state(&self, x: usize, y: usize) -> TileState {
         self.get_tile(x, y).state
     }
