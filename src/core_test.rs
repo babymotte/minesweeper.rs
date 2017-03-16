@@ -29,7 +29,7 @@ fn test_new_game_custom() {
     let w = 30;
     let h = 20;
     let m = 120;
-    let minefield = MineField::new(Difficulty::Custom(w,h,m), 0, 0);
+    let minefield = MineField::new(Difficulty::Custom(w, h, m), 0, 0);
     assert_eq!(minefield.get_width(), w);
     assert_eq!(minefield.get_height(), h);
     assert_eq!(minefield.get_mine_count(), m);
