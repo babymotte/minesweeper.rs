@@ -5,8 +5,8 @@ authors = ["Michael Bachmann <kontakt@babymotte.de>"]
 
 [dependencies]
 rand = "0.3"
-time = "0.1"
 regex = "0.2"
+time = "0.1"
 timer = "0.1.6"
 
 [lib]
