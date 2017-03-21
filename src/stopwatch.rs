@@ -7,50 +7,50 @@ use std::sync::mpsc::Sender;
 use std::time::Instant;
 
 pub struct Stopwatch {
+    tx: Sender<Duration>,
     start: Option<Instant>,
-    timer_guard: Option<Guard>
+    timer: Option<Timer>,
+    timer_guard: Option<Guard>,
 }
 
 impl Stopwatch {
-
-    pub fn new() -> Stopwatch {
+    pub fn new(tx: Sender<Duration>) -> Stopwatch {
         Stopwatch {
+            tx: tx,
             start: Option::None,
+            timer: Option::None,
             timer_guard: Option::None,
         }
     }
 
-    pub fn start(&mut self, tx: Sender<Duration>) {
-
-        println!("Starting Stopwatch.");
+    pub fn start(&mut self) {
 
         let start = Instant::now();
         self.start = Option::Some(start.clone());
 
+        let tx = self.tx.clone();
+
         let timer = Timer::new();
-        let guard = timer.schedule_with_delay(time::Duration::seconds(1), move || {
-            println!("Timer!");
+        let guard = timer.schedule_repeating(time::Duration::seconds(1), move || {
             let delta = start.elapsed();
             tx.send(delta).unwrap();
         });
 
+        self.timer = Option::Some(timer);
         self.timer_guard = Option::Some(guard);
     }
 
     pub fn stop(&mut self) -> Result<Duration, String> {
 
-        println!("Stopping Stopwatch.");
-
         let result = match &self.timer_guard {
             &Some(_) => {
-                let start = self.start.unwrap();
-                let stop = Instant::now();
-                let delta = stop.elapsed() - start.elapsed();
+                let delta = self.start.unwrap().elapsed();
                 Result::Ok(delta)
-            },
+            }
             &None => Result::Err("Timer has not been started!".to_string()),
         };
 
+        self.timer = Option::None;
         self.timer_guard = Option::None;
 
         result

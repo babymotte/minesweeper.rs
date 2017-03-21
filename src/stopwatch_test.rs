@@ -5,11 +5,11 @@ use std::sync::mpsc;
 #[test]
 fn simple_stopwatch_test() {
 
-    let mut stopwatch = Stopwatch::new();
-
     let (tx, rx) = mpsc::channel();
 
-    stopwatch.start(tx);
+    let mut stopwatch = Stopwatch::new(tx);
+
+    stopwatch.start();
 
     for _ in 0..3 {
         match rx.recv() {
