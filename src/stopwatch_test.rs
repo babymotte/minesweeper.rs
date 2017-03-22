@@ -7,7 +7,7 @@ fn simple_stopwatch_test() {
 
     let (tx, rx) = mpsc::channel();
 
-    let mut stopwatch = Stopwatch::new(tx);
+    let mut stopwatch = Stopwatch::new(Option::Some(tx));
 
     stopwatch.start();
 

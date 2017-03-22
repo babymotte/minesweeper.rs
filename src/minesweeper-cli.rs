@@ -39,7 +39,7 @@ fn bye(state: GameState, duration: Duration) {
     match state {
         GameState::Won => println!("Congratulations! You won!"),
         GameState::Lost => println!("You are dead!"),
-        _ => panic!("The game cannot be over if the player has neither won nor lost!");
+        _ => panic!("The game cannot be over if the player has neither won nor lost!"),
     }
     println!("Game duration: {} seconds", duration.as_secs());
 }
