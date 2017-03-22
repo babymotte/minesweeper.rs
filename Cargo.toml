@@ -8,6 +8,9 @@ rand = "0.3"
 regex = "0.2"
 time = "0.1"
 timer = "0.1"
+serde = "0.9"
+serde_derive = "0.9"
+serde_json = "0.9"
 
 [lib]
 name = "minesweeper"
