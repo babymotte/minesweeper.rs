@@ -4,12 +4,9 @@ extern crate regex;
 
 use std::io;
 use std::time::Duration;
-use std::sync::mpsc;
-use std::sync::mpsc::{Sender, Receiver};
 use minesweeper::core::{Difficulty, TileState};
 use minesweeper::interface::{GameHandle, GameState};
 use regex::Regex;
-use std::thread;
 
 #[derive(Debug, Clone, Copy)]
 enum Command {
@@ -28,7 +25,7 @@ fn main() {
 
     let final_state = run_input_loop(handle);
 
-    bye(final_state);
+    bye(final_state.0, final_state.1);
 }
 
 fn finished(game_state: GameState) -> bool {
@@ -38,7 +35,7 @@ fn finished(game_state: GameState) -> bool {
     }
 }
 
-fn bye(state: GameState) {
+fn bye(state: GameState, duration: Duration) {
     match state {
         GameState::Won => println!("Congratulations! You won!"),
         GameState::Lost => println!("You are dead!"),
@@ -48,9 +45,10 @@ fn bye(state: GameState) {
                      state)
         }
     }
+    println!("Game duration: {} seconds", duration.as_secs());
 }
 
-fn run_input_loop(mut handle: GameHandle) -> GameState {
+fn run_input_loop(mut handle: GameHandle) -> (GameState, Duration) {
 
     let tile_coordinates_regex: Regex = Regex::new(r"^([0-9]+),([0-9]+)$").unwrap();
 
@@ -93,7 +91,7 @@ fn run_input_loop(mut handle: GameHandle) -> GameState {
         }
     }
 
-    handle.get_game_state()
+    (handle.get_game_state(), handle.get_duration().unwrap())
 }
 
 fn parse_command(cmd: &str, tile_coordinates_regex: &Regex) -> Result<Command, String> {

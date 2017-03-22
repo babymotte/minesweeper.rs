@@ -28,6 +28,7 @@ pub struct GameHandle {
     level: Difficulty,
     board: Option<MineField>,
     game_state: GameState,
+    duration: Option<Duration>,
 }
 
 impl TileUpdate {
@@ -47,7 +48,12 @@ impl GameHandle {
             level: level,
             board: Option::None,
             game_state: GameState::NotStarted,
+            duration: Option::None,
         }
+    }
+
+    pub fn get_duration(&self) -> Option<Duration> {
+        self.duration
     }
 
     pub fn get_game_state(&self) -> GameState {
@@ -95,11 +101,15 @@ impl GameHandle {
 
         match result {
             TileState::Uncovered(0) => self.uncover_nearby_mines(x, y, changes),
-            TileState::Detonated => self.game_state = GameState::Lost,
+            TileState::Detonated => {
+                self.duration = Option::Some(self.stopwatch.stop().unwrap());
+                self.game_state = GameState::Lost;
+            },
             _ => {}
         }
 
         if self.has_won() {
+            self.duration = Option::Some(self.stopwatch.stop().unwrap());
             self.game_state = GameState::Won;
         }
     }
