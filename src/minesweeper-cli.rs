@@ -39,11 +39,7 @@ fn bye(state: GameState, duration: Duration) {
     match state {
         GameState::Won => println!("Congratulations! You won!"),
         GameState::Lost => println!("You are dead!"),
-        _ => {
-            println!("You're neither dead nor have you won, yet somehow this game is over. Weird. \
-                      ({:?})",
-                     state)
-        }
+        _ => panic!("The game cannot be over if the player has neither won nor lost!");
     }
     println!("Game duration: {} seconds", duration.as_secs());
 }
@@ -91,6 +87,7 @@ fn run_input_loop(mut handle: GameHandle) -> (GameState, Duration) {
         }
     }
 
+    // unwrapping the duration because there is no legal way for it not to be set at this point
     (handle.get_game_state(), handle.get_duration().unwrap())
 }
 
