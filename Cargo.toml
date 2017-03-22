@@ -7,7 +7,7 @@ authors = ["Michael Bachmann <kontakt@babymotte.de>"]
 rand = "0.3"
 regex = "0.2"
 time = "0.1"
-timer = "0.1.6"
+timer = "0.1"
 
 [lib]
 name = "minesweeper"
