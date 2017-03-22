@@ -41,7 +41,7 @@ impl TileUpdate {
 }
 
 impl GameHandle {
-    pub fn new(level: Difficulty, stopwatch_tx: Sender<Duration>) -> GameHandle {
+    pub fn new(level: Difficulty, stopwatch_tx: Option<Sender<Duration>>) -> GameHandle {
         GameHandle {
             stopwatch: Stopwatch::new(stopwatch_tx),
             level: level,

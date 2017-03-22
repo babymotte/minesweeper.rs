@@ -7,14 +7,14 @@ use std::sync::mpsc::Sender;
 use std::time::Instant;
 
 pub struct Stopwatch {
-    tx: Sender<Duration>,
+    tx: Option<Sender<Duration>>,
     start: Option<Instant>,
     timer: Option<Timer>,
     timer_guard: Option<Guard>,
 }
 
 impl Stopwatch {
-    pub fn new(tx: Sender<Duration>) -> Stopwatch {
+    pub fn new(tx: Option<Sender<Duration>>) -> Stopwatch {
         Stopwatch {
             tx: tx,
             start: Option::None,
@@ -32,28 +32,30 @@ impl Stopwatch {
         let start = Instant::now();
         self.start = Option::Some(start.clone());
 
-        let tx = self.tx.clone();
+        if let Option::Some(tx) = self.tx.clone() {
 
-        let timer = Timer::new();
-        let guard = timer.schedule_repeating(time::Duration::seconds(1), move || {
-            let delta = start.elapsed();
-            tx.send(delta).unwrap();
-        });
+            let timer = Timer::new();
+            let guard = timer.schedule_repeating(time::Duration::seconds(1), move || {
+                let delta = start.elapsed();
+                tx.send(delta).unwrap();
+            });
 
-        self.timer = Option::Some(timer);
-        self.timer_guard = Option::Some(guard);
+            self.timer = Option::Some(timer);
+            self.timer_guard = Option::Some(guard);
+        }
     }
 
     pub fn stop(&mut self) -> Result<Duration, String> {
 
-        let result = match &self.timer_guard {
-            &Some(_) => {
-                let delta = self.start.unwrap().elapsed();
+        let result = match self.start {
+            Some(start) => {
+                let delta = start.elapsed();
                 Result::Ok(delta)
             }
-            &None => Result::Err("Timer has not been started!".to_string()),
+            None => Result::Err("Stopwatch has not been started!".to_string()),
         };
 
+        // make sure timer gets dropped
         self.timer = Option::None;
         self.timer_guard = Option::None;
 

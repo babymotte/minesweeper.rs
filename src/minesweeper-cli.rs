@@ -21,15 +21,8 @@ enum Command {
 
 fn main() {
 
-    let (tx, rx): (Sender<Duration>, Receiver<Duration>) = mpsc::channel();
-
-    thread::spawn(move || loop {
-                      let dur = rx.recv().unwrap();
-                      println!("Time: {:?}", dur);
-                  });
-
     let level = Difficulty::Beginner;
-    let handle = GameHandle::new(level, tx);
+    let handle = GameHandle::new(level, Option::None);
 
     print_board(&handle);
 
