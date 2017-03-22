@@ -1,8 +1,11 @@
 extern crate rand;
 extern crate time;
 
+use std::sync::mpsc::Sender;
+use std::time::Duration;
 use core;
 use core::{TileState, Difficulty, MineField};
+use stopwatch::Stopwatch;
 
 
 #[derive(Debug, Copy, Clone)]
@@ -21,6 +24,7 @@ pub struct TileUpdate {
 }
 
 pub struct GameHandle {
+    stopwatch: Stopwatch,
     level: Difficulty,
     board: Option<MineField>,
     game_state: GameState,
@@ -37,8 +41,9 @@ impl TileUpdate {
 }
 
 impl GameHandle {
-    pub fn new(level: Difficulty) -> GameHandle {
+    pub fn new(level: Difficulty, stopwatch_tx: Sender<Duration>) -> GameHandle {
         GameHandle {
+            stopwatch: Stopwatch::new(stopwatch_tx),
             level: level,
             board: Option::None,
             game_state: GameState::NotStarted,
@@ -117,6 +122,7 @@ impl GameHandle {
         let board: MineField = MineField::new(self.level, x, y);
         self.board = Option::Some(board);
         self.game_state = GameState::Started;
+        self.stopwatch.start();
     }
 
     pub fn uncover(&mut self, x: usize, y: usize) -> Vec<TileUpdate> {

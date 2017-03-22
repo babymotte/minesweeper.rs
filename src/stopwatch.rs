@@ -25,6 +25,10 @@ impl Stopwatch {
 
     pub fn start(&mut self) {
 
+        if let Option::Some(_) = self.start {
+            panic!("Stopwatch has already been started!");
+        }
+
         let start = Instant::now();
         self.start = Option::Some(start.clone());
 

@@ -2,10 +2,14 @@ extern crate minesweeper;
 extern crate rand;
 extern crate regex;
 
+use std::io;
+use std::time::Duration;
+use std::sync::mpsc;
+use std::sync::mpsc::{Sender, Receiver};
 use minesweeper::core::{Difficulty, TileState};
 use minesweeper::interface::{GameHandle, GameState};
-use std::io;
 use regex::Regex;
+use std::thread;
 
 #[derive(Debug, Clone, Copy)]
 enum Command {
@@ -17,8 +21,15 @@ enum Command {
 
 fn main() {
 
+    let (tx, rx): (Sender<Duration>, Receiver<Duration>) = mpsc::channel();
+
+    thread::spawn(move || loop {
+                      let dur = rx.recv().unwrap();
+                      println!("Time: {:?}", dur);
+                  });
+
     let level = Difficulty::Beginner;
-    let handle = GameHandle::new(level);
+    let handle = GameHandle::new(level, tx);
 
     print_board(&handle);
 
@@ -100,8 +111,16 @@ fn parse_command(cmd: &str, tile_coordinates_regex: &Regex) -> Result<Command, S
         _ => {
             match tile_coordinates_regex.captures(cmd) {
                 Option::Some(caps) => {
-                    let x: usize = caps.get(1).unwrap().as_str().parse().unwrap();
-                    let y: usize = caps.get(2).unwrap().as_str().parse().unwrap();
+                    let x: usize = caps.get(1)
+                        .unwrap()
+                        .as_str()
+                        .parse()
+                        .unwrap();
+                    let y: usize = caps.get(2)
+                        .unwrap()
+                        .as_str()
+                        .parse()
+                        .unwrap();
                     Result::Ok(Command::Tile(x, y))
                 }
                 _ => Result::Err("Unknown command: ".to_string() + cmd),
