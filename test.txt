@@ -1,0 +1,1 @@
+{"beginner":10.23,"intermediate":23.864,"expert":null}

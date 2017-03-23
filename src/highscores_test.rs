@@ -1,3 +1,4 @@
+use highscores;
 use highscores::Highscores;
 use serde_json;
 
@@ -25,4 +26,18 @@ fn highscores_test_deserialize() {
     assert_eq!(hs.get_beginner(), Option::None);
     assert_eq!(hs.get_intermediate(), Option::Some(1 as f64));
     assert_eq!(hs.get_expert(), Option::Some(666.666));
+}
+
+#[test]
+fn highscores_test_save() {
+
+    let mut hs = Highscores::new();
+    hs.set_beginner(10.23);
+    hs.set_intermediate(23.864);
+
+    highscores::save(&hs, "test.txt");
+
+    let loaded_highscores = highscores::load("test.txt");
+
+    assert_eq!(hs, loaded_highscores);
 }
