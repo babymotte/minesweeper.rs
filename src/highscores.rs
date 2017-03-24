@@ -5,9 +5,9 @@ use std::io::prelude::*;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Copy, Clone)]
 pub struct Highscores {
-    beginner: Option<f64>,
-    intermediate: Option<f64>,
-    expert: Option<f64>,
+    beginner: Option<u64>,
+    intermediate: Option<u64>,
+    expert: Option<u64>,
 }
 
 impl Highscores {
@@ -19,37 +19,39 @@ impl Highscores {
         }
     }
 
-    pub fn get_beginner(&self) -> Option<f64> {
+    pub fn get_beginner(&self) -> Option<u64> {
         self.beginner
     }
 
-    pub fn get_intermediate(&self) -> Option<f64> {
+    pub fn get_intermediate(&self) -> Option<u64> {
         self.intermediate
     }
 
-    pub fn get_expert(&self) -> Option<f64> {
+    pub fn get_expert(&self) -> Option<u64> {
         self.expert
     }
 
-    pub fn set_beginner(&mut self, value: f64) {
+    pub fn set_beginner(&mut self, value: u64) {
         self.beginner = Option::Some(value);
     }
 
-    pub fn set_intermediate(&mut self, value: f64) {
+    pub fn set_intermediate(&mut self, value: u64) {
         self.intermediate = Option::Some(value);
     }
 
-    pub fn set_expert(&mut self, value: f64) {
+    pub fn set_expert(&mut self, value: u64) {
         self.expert = Option::Some(value);
     }
 }
 
+// TODO implement proper error handling
 pub fn save(highscores: &Highscores, path: &str) {
     let mut file = File::create(path).unwrap();
     let json = serde_json::to_string(highscores).unwrap();
     file.write_all(json.as_bytes()).unwrap();
 }
 
+// TODO implement proper error handling
 pub fn load(path: &str) -> Highscores {
     let mut file = File::open(path).unwrap();
     let mut json = String::new();

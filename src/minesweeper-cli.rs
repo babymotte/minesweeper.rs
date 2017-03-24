@@ -6,6 +6,8 @@ use std::io;
 use std::time::Duration;
 use minesweeper::core::{Difficulty, TileState};
 use minesweeper::interface::{GameHandle, GameState};
+use minesweeper::highscores::Highscores;
+use minesweeper::highscores;
 use regex::Regex;
 
 #[derive(Debug, Clone, Copy)]
@@ -25,7 +27,7 @@ fn main() {
 
     let final_state = run_input_loop(handle);
 
-    bye(final_state.0, final_state.1);
+    bye(final_state.0, final_state.1, level);
 }
 
 fn finished(game_state: GameState) -> bool {
@@ -35,14 +37,59 @@ fn finished(game_state: GameState) -> bool {
     }
 }
 
-fn bye(state: GameState, duration: Duration) {
+fn bye(state: GameState, duration: Duration, level: Difficulty) {
     match state {
-        GameState::Won => println!("Congratulations! You won!"),
+        GameState::Won => {
+            println!("Congratulations! You won!");
+            check_highscores(level, duration);
+        },
         GameState::Lost => println!("You are dead!"),
         _ => panic!("The game cannot be over if the player has neither won nor lost!"),
     }
     println!("Game duration: {} seconds", duration.as_secs());
 }
+
+fn check_highscores(level: Difficulty, duration: Duration) {
+
+    let mut hs = highscores::load("highscores");
+    let secs = duration.as_secs() as u64;
+    let nanos = duration.subsec_nanos() as u64;
+    let ms = secs * 1_000 + nanos / 1_000_000;
+
+    match level {
+        Difficulty::Beginner => update_beginner_time(&mut hs, ms),
+        Difficulty::Intermediate => update_intermediate_time(&mut hs, ms),
+        Difficulty::Expert => update_expert_time(&mut hs, ms),
+        Difficulty::Custom(_, _, _) => {},
+    }
+
+    highscores::save(&hs, "highscores");
+}
+
+fn update_beginner_time(hs: &mut Highscores, duration: u64) {
+    match hs.get_beginner() {
+        Option::Some(beginner) => if duration < beginner {
+                hs.set_beginner(duration);
+            },
+        Option::None => hs.set_beginner(duration),
+    } 
+}
+
+fn update_intermediate_time(hs: &mut Highscores, duration: u64) {
+     match hs.get_intermediate() {
+        Option::Some(beginner) => if duration < beginner {
+                hs.set_intermediate(duration);
+            },
+        Option::None => hs.set_intermediate(duration),
+    } 
+}
+fn update_expert_time(hs: &mut Highscores, duration: u64) {
+     match hs.get_expert() {
+        Option::Some(beginner) => if duration < beginner {
+                hs.set_expert(duration);
+            },
+        Option::None => hs.set_expert(duration),
+    } }
 
 fn run_input_loop(mut handle: GameHandle) -> (GameState, Duration) {
 
