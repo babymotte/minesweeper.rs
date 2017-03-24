@@ -36,7 +36,22 @@ pub extern fn command(cmd: *const c_uint, callback: extern "C" fn(*const c_uint)
      *   00    | 00 | 0000 00000000 | 00000000 | 00000000
      */
 
-     let action = cmd >> 30;
+     let action = get_action(cmd);
+     match action {
+         Action::StartGame => {
+             let level = get_difficulty(cmd);
+             start(level, callback);
+         },
+         Action::UncoverTile => {
+             let (x, y) = get_x_y(cmd);
+             uncover_tile(x, y, callback);
+         },
+         Action::ToggleFlag => {
+             let (x, y) = get_x_y(cmd);
+             toggle_flag(x, y, callback);
+         },
+         Action::NotSpecified => {},
+     }
 
 }
 
@@ -68,6 +83,10 @@ pub fn get_y(cmd: u32) -> usize {
 
 pub fn get_mines(cmd: u32) -> usize {
     ((cmd & 0b_00_00_111111111111_00000000_00000000) >> 16) as usize
+}
+
+pub fn get_x_y(cmd: u32) -> (usize, usize) {
+    (get_x(cmd), get_y(cmd))
 }
 
 pub fn get_difficulty(cmd: u32) -> Difficulty {
