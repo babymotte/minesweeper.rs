@@ -24,3 +24,5 @@ mod interface_test;
 mod stopwatch_test;
 #[cfg(test)]
 mod highscores_test;
+#[cfg(test)]
+mod minesweeper_u32_test;
