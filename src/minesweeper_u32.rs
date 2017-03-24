@@ -20,10 +20,10 @@ lazy_static! {
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Action {
-    StartGame = 0b00,
-    UncoverTile = 0b01,
-    ToggleFlag = 0b10,
-    NotSpecified = 0b11,
+    StartGame = 0b_00,
+    UncoverTile = 0b_01,
+    ToggleFlag = 0b_10,
+    NotSpecified = 0b_11,
 }
 
 #[no_mangle]
@@ -56,4 +56,27 @@ fn convert_new_highscore(state: Duration) -> u32 {0}
 
 pub fn get_action(cmd: u32) -> Action {
     unsafe { mem::transmute((cmd >> 30) as u8) }
+}
+
+pub fn get_x(cmd: u32) -> usize {
+    ((cmd & 0b_00_00_000000000000_11111111_00000000) >> 8) as usize
+}
+
+pub fn get_y(cmd: u32) -> usize {
+    (cmd & 0b_00_00_000000000000_00000000_11111111) as usize
+}
+
+pub fn get_mines(cmd: u32) -> usize {
+    ((cmd & 0b_00_00_111111111111_00000000_00000000) >> 16) as usize
+}
+
+pub fn get_difficulty(cmd: u32) -> Difficulty {
+    let level = (cmd & 0b_00_11_000000000000_00000000_00000000) >> 28 ;
+    match level {
+        0b_00 => Difficulty::Beginner,
+        0b_01 => Difficulty::Intermediate,
+        0b_10 => Difficulty::Expert,
+        0b_11 => Difficulty::Custom(get_x(cmd), get_y(cmd), get_mines(cmd)),
+        _ => panic!("This is impossible. All but two bits have bin masked out."),
+    }
 }
