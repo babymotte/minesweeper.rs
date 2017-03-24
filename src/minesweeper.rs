@@ -2,6 +2,7 @@ pub mod core;
 pub mod stopwatch;
 pub mod interface;
 pub mod highscores;
+pub mod minesweeper_u32;
 
 extern crate rand;
 extern crate regex;
