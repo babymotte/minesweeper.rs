@@ -19,9 +19,9 @@ lazy_static! {
 #[no_mangle]
 pub extern fn command(name: *const c_uint, callback: extern "C" fn(*const c_uint)) {}
 
-fn start(level: Difficulty) {}
-fn uncover_tile(x: usize, y: usize) {}
-fn toggle_flag(x: usize, y: usize) {}
+fn start(level: Difficulty, callback: extern "C" fn(*const c_uint)) {}
+fn uncover_tile(x: usize, y: usize, callback: extern "C" fn(*const c_uint)) {}
+fn toggle_flag(x: usize, y: usize, callback: extern "C" fn(*const c_uint)) {}
 
 fn report_game_state_change(state: GameState, callback: extern "C" fn(*const c_uint)) {}
 fn report_tile_state_change(state: TileState, callback: extern "C" fn(*const c_uint)) {}
