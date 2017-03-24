@@ -53,9 +53,16 @@ pub fn save(highscores: &Highscores, path: &str) {
 
 // TODO implement proper error handling
 pub fn load(path: &str) -> Highscores {
-    let mut file = File::open(path).unwrap();
-    let mut json = String::new();
-    file.read_to_string(&mut json).unwrap();
-    let hs: Highscores = serde_json::from_str(&json).unwrap();
-    hs
+
+    match File::open(path) {
+        Result::Ok(mut file) => {
+            let mut json = String::new();
+            file.read_to_string(&mut json).unwrap();
+            match serde_json::from_str(&json) {
+                Result::Ok(hs) => hs,
+                Result::Err(_) => Highscores::new(),
+            }
+        }
+        Result::Err(_) => Highscores::new(),
+    }
 }

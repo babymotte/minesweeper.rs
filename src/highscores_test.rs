@@ -1,6 +1,8 @@
 use highscores;
 use highscores::Highscores;
 use serde_json;
+use std::fs;
+use std::fs::File;
 
 #[test]
 fn highscores_test_serialize() {
@@ -40,4 +42,36 @@ fn highscores_test_save() {
     let loaded_highscores = highscores::load("test.txt");
 
     assert_eq!(hs, loaded_highscores);
+}
+
+#[test]
+fn create_new_file() {
+
+    let mut hs = Highscores::new();
+    hs.set_beginner(10230);
+    hs.set_intermediate(23864);
+
+    highscores::save(&hs, "hs.json");
+
+    fs::remove_file("hs.json").unwrap();
+}
+
+#[test]
+fn load_without_file() {
+
+    let loaded_highscores = highscores::load("hs.json");
+
+    assert_eq!(loaded_highscores, Highscores::new());
+}
+
+#[test]
+fn load_unreadable_file() {
+
+    File::create("hs.json").unwrap();
+
+    let loaded_highscores = highscores::load("hs.json");
+
+    assert_eq!(loaded_highscores, Highscores::new());
+
+    fs::remove_file("hs.json").unwrap();
 }

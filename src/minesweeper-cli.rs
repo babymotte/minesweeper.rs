@@ -42,7 +42,7 @@ fn bye(state: GameState, duration: Duration, level: Difficulty) {
         GameState::Won => {
             println!("Congratulations! You won!");
             check_highscores(level, duration);
-        },
+        }
         GameState::Lost => println!("You are dead!"),
         _ => panic!("The game cannot be over if the player has neither won nor lost!"),
     }
@@ -60,7 +60,7 @@ fn check_highscores(level: Difficulty, duration: Duration) {
         Difficulty::Beginner => update_beginner_time(&mut hs, ms),
         Difficulty::Intermediate => update_intermediate_time(&mut hs, ms),
         Difficulty::Expert => update_expert_time(&mut hs, ms),
-        Difficulty::Custom(_, _, _) => {},
+        Difficulty::Custom(_, _, _) => {}
     }
 
     highscores::save(&hs, "highscores");
@@ -68,28 +68,47 @@ fn check_highscores(level: Difficulty, duration: Duration) {
 
 fn update_beginner_time(hs: &mut Highscores, duration: u64) {
     match hs.get_beginner() {
-        Option::Some(beginner) => if duration < beginner {
+        Option::Some(beginner) => {
+            if duration < beginner {
+                print!("New highscore!");
                 hs.set_beginner(duration);
-            },
-        Option::None => hs.set_beginner(duration),
-    } 
+            }
+        }
+        Option::None => {
+            print!("New highscore!");
+            hs.set_beginner(duration);
+        }
+    }
 }
 
 fn update_intermediate_time(hs: &mut Highscores, duration: u64) {
-     match hs.get_intermediate() {
-        Option::Some(beginner) => if duration < beginner {
+    match hs.get_intermediate() {
+        Option::Some(beginner) => {
+            if duration < beginner {
+                print!("New highscore!");
                 hs.set_intermediate(duration);
-            },
-        Option::None => hs.set_intermediate(duration),
-    } 
+            }
+        }
+        Option::None => {
+            print!("New highscore!");
+            hs.set_intermediate(duration);
+        }
+    }
 }
 fn update_expert_time(hs: &mut Highscores, duration: u64) {
-     match hs.get_expert() {
-        Option::Some(beginner) => if duration < beginner {
+    match hs.get_expert() {
+        Option::Some(beginner) => {
+            if duration < beginner {
+                print!("New highscore!");
                 hs.set_expert(duration);
-            },
-        Option::None => hs.set_expert(duration),
-    } }
+            }
+        }
+        Option::None => {
+            print!("New highscore!");
+            hs.set_expert(duration);
+        }
+    }
+}
 
 fn run_input_loop(mut handle: GameHandle) -> (GameState, Duration) {
 
