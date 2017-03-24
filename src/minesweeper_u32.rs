@@ -10,12 +10,14 @@ use highscores::Highscores;
 use highscores;
 use regex::Regex;
 use libc::c_uint;
+use std::sync::{Arc, Mutex};
+
+lazy_static! {
+    static ref GAME_HANDLE: Arc<Mutex<Option<GameHandle>>> = Arc::new(Mutex::new(Option::None));
+}
 
 #[no_mangle]
-pub extern fn command(name: *const c_uint) {}
-
-#[no_mangle]
-pub extern fn hook(callback: extern "C" fn(*const c_uint)) {}
+pub extern fn command(name: *const c_uint, callback: extern "C" fn(*const c_uint)) {}
 
 fn start(level: Difficulty) {}
 fn uncover_tile(x: usize, y: usize) {}
