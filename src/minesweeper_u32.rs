@@ -17,3 +17,9 @@ fn report_game_state_change(state: GameState) {}
 fn report_tile_state_change(state: TileState) {}
 fn report_time_change(state: Duration) {}
 fn report_new_highscore(state: Duration) {}
+
+
+fn convert_game_state_change(state: GameState) -> u32 {0}
+fn convert_tile_state_change(state: TileState) -> u32 {0}
+fn convert_time_change(state: Duration) -> u32 {0}
+fn convert_new_highscore(state: Duration) -> u32 {0}
