@@ -13,6 +13,22 @@ use libc::c_uint;
 use std::sync::{Arc, Mutex};
 use std::mem;
 
+
+/*  
+ * Protocol
+ * 
+ * Command coming from calling programm:
+
+ * action   enum      mines      width/x    height/y
+ *   00    | 00 | 000000000000 | 00000000 | 00000000
+ *
+ *
+ * Return value to calling program:
+ *
+ * type enum      time           x     y/neighbors
+ *  00 | 00 | 000000000000 | 00000000 | 0000|0000
+ */
+
 lazy_static! {
     static ref GAME_HANDLE: Arc<Mutex<Option<GameHandle>>> = Arc::new(Mutex::new(Option::None));
 }
@@ -27,31 +43,26 @@ pub enum Action {
 }
 
 #[no_mangle]
-pub extern fn command(cmd: *const c_uint, callback: extern "C" fn(*const c_uint)) {
-    
+pub extern "C" fn command(cmd: *const c_uint, callback: extern "C" fn(*const c_uint)) {
+
     let cmd = cmd as u32;
 
-    /*
-     * action   enum       mines      width/x    height/y
-     *   00    | 00 | 0000 00000000 | 00000000 | 00000000
-     */
-
-     let action = get_action(cmd);
-     match action {
-         Action::StartGame => {
-             let level = get_difficulty(cmd);
-             start(level, callback);
-         },
-         Action::UncoverTile => {
-             let (x, y) = get_x_y(cmd);
-             uncover_tile(x, y, callback);
-         },
-         Action::ToggleFlag => {
-             let (x, y) = get_x_y(cmd);
-             toggle_flag(x, y, callback);
-         },
-         Action::NotSpecified => {},
-     }
+    let action = get_action(cmd);
+    match action {
+        Action::StartGame => {
+            let level = get_difficulty(cmd);
+            start(level, callback);
+        }
+        Action::UncoverTile => {
+            let (x, y) = get_x_y(cmd);
+            uncover_tile(x, y, callback);
+        }
+        Action::ToggleFlag => {
+            let (x, y) = get_x_y(cmd);
+            toggle_flag(x, y, callback);
+        }
+        Action::NotSpecified => {}
+    }
 
 }
 
@@ -64,10 +75,32 @@ fn report_tile_state_change(state: TileState, callback: extern "C" fn(*const c_u
 fn report_time_change(state: Duration, callback: extern "C" fn(*const c_uint)) {}
 fn report_new_highscore(state: Duration, callback: extern "C" fn(*const c_uint)) {}
 
-fn convert_game_state_change(state: GameState) -> u32 {0}
-fn convert_tile_state_change(state: TileState) -> u32 {0}
-fn convert_time_change(state: Duration) -> u32 {0}
-fn convert_new_highscore(state: Duration) -> u32 {0}
+pub fn convert_game_state_change(state: GameState) -> u32 {
+    (state as u32) << 28
+}
+
+pub fn convert_tile_state_change(state: TileState) -> u32 {
+    match state {
+        TileState::Covered => 0b_01_00_000000000000_00000000_00000000,
+        TileState::Marked => 0b_01_01_000000000000_00000000_00000000,
+        TileState::Uncovered(neighbors) => {
+            (0b_01_10_000000000000_00000000_00000000 | (neighbors as u32))
+        }
+        TileState::Detonated => 0b_01_11_000000000000_00000000_00000000,
+        _ => panic!("NoOp not allowed!"),
+    }
+}
+
+pub fn convert_time_change(duration: Duration) -> u32 {
+    let seconds = (duration.as_secs() * 1_000) as u32;
+    let nanos = (duration.subsec_nanos() / 1_000_000) as u32; 
+    let millis = seconds + nanos;
+    0b_10_000000_00000000_00000000_00000000 | millis
+}
+
+pub fn convert_new_highscore(state: Duration) -> u32 {
+    0b_11_000000_00000000_00000000_00000000
+}
 
 pub fn get_action(cmd: u32) -> Action {
     unsafe { mem::transmute((cmd >> 30) as u8) }
@@ -90,7 +123,7 @@ pub fn get_x_y(cmd: u32) -> (usize, usize) {
 }
 
 pub fn get_difficulty(cmd: u32) -> Difficulty {
-    let level = (cmd & 0b_00_11_000000000000_00000000_00000000) >> 28 ;
+    let level = (cmd & 0b_00_11_000000000000_00000000_00000000) >> 28;
     match level {
         0b_00 => Difficulty::Beginner,
         0b_01 => Difficulty::Intermediate,

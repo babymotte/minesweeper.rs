@@ -1,6 +1,7 @@
 use minesweeper_u32;
 use minesweeper_u32::Action;
-use core::Difficulty;
+use core::{Difficulty, TileState};
+use interface::GameState;
 
 /*
  * Don't let yourself be irritated by the unconventional formatting of the binary
@@ -103,4 +104,42 @@ fn test_get_difficulty() {
                Difficulty::Expert);
     assert_eq!(minesweeper_u32::get_difficulty(0b_00_11_101010101010_10011000_11101110),
                Difficulty::Custom(0b_10011000, 0b_11101110, 0b_101010101010));
+}
+
+#[test]
+fn test_convert_game_state_change() {
+
+    assert_eq!(minesweeper_u32::convert_game_state_change(GameState::NotStarted),
+               0b_00_00_000000000000_00000000_00000000);
+
+    assert_eq!(minesweeper_u32::convert_game_state_change(GameState::Started),
+               0b_00_01_000000000000_00000000_00000000);
+
+    assert_eq!(minesweeper_u32::convert_game_state_change(GameState::Won),
+               0b_00_10_000000000000_00000000_00000000);
+
+    assert_eq!(minesweeper_u32::convert_game_state_change(GameState::Lost),
+               0b_00_11_000000000000_00000000_00000000);
+}
+
+#[test]
+fn test_convert_tile_state_change() {
+
+    assert_eq!(minesweeper_u32::convert_tile_state_change(TileState::Covered),
+               0b_01_00_000000000000_00000000_00000000);
+
+    assert_eq!(minesweeper_u32::convert_tile_state_change(TileState::Marked),
+               0b_01_01_000000000000_00000000_00000000);
+
+    assert_eq!(minesweeper_u32::convert_tile_state_change(TileState::Detonated),
+               0b_01_11_000000000000_00000000_00000000);
+
+    assert_eq!(minesweeper_u32::convert_tile_state_change(TileState::Uncovered(0b_0000)),
+               0b_01_10_000000000000_00000000_00000000);
+
+    assert_eq!(minesweeper_u32::convert_tile_state_change(TileState::Uncovered(0b_0010)),
+               0b_01_10_000000000000_00000000_00000010);
+
+    assert_eq!(minesweeper_u32::convert_tile_state_change(TileState::Uncovered(0b_1010)),
+               0b_01_10_000000000000_00000000_00001010);
 }
