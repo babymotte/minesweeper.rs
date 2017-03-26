@@ -3,6 +3,7 @@ pub mod stopwatch;
 pub mod interface;
 pub mod highscores;
 pub mod minesweeper_u32;
+pub mod cli_io;
 
 extern crate rand;
 extern crate regex;

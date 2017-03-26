@@ -4,10 +4,11 @@ extern crate regex;
 
 use std::io;
 use std::time::Duration;
-use minesweeper::core::{Difficulty, TileState};
+use minesweeper::core::Difficulty;
 use minesweeper::interface::{GameHandle, GameState};
 use minesweeper::highscores::Highscores;
 use minesweeper::highscores;
+use minesweeper::cli_io;
 use regex::Regex;
 
 #[derive(Debug, Clone, Copy)]
@@ -23,7 +24,7 @@ fn main() {
     let level = Difficulty::Beginner;
     let handle = GameHandle::new(level, Option::None);
 
-    print_board(&handle);
+    cli_io::print_board(&handle);
 
     let final_state = run_input_loop(handle);
 
@@ -131,11 +132,11 @@ fn run_input_loop(mut handle: GameHandle) -> (GameState, Duration) {
                         match cmd {
                             Command::Uncover => {
                                 handle.uncover(x, y);
-                                print_board(&handle);
+                                cli_io::print_board(&handle);
                             }
                             Command::Flag => {
                                 handle.toggle_flag(x, y);
-                                print_board(&handle);
+                                cli_io::print_board(&handle);
                             }
                             _ => panic!("Illegal state!"),
                         }
@@ -199,27 +200,4 @@ fn print_help() -> Result<Command, String> {
     println!("");
 
     Result::Ok(Command::NoOp)
-}
-
-fn print_board(handle: &GameHandle) {
-
-    println!("");
-    for y in 0..handle.get_height() {
-        for x in 0..handle.get_width() {
-            print(handle.get_tile_state(x, y));
-        }
-        println!("");
-    }
-    println!("");
-}
-
-fn print(state: TileState) {
-    match state {
-        TileState::Uncovered(0) => print!("  "),
-        TileState::Uncovered(x) => print!(" {}", x),
-        TileState::Covered => print!(" ■"),
-        TileState::Detonated => print!(" *"),
-        TileState::Marked => print!(" ✓"),
-        _ => {}
-    }
 }

@@ -66,7 +66,10 @@ pub extern "C" fn command(cmd: *const c_uint, callback: extern "C" fn(*const c_u
 
 }
 
-fn start(level: Difficulty, callback: extern "C" fn(*const c_uint)) {}
+fn start(level: Difficulty, callback: extern "C" fn(*const c_uint)) {
+
+}
+
 fn uncover_tile(x: usize, y: usize, callback: extern "C" fn(*const c_uint)) {}
 fn toggle_flag(x: usize, y: usize, callback: extern "C" fn(*const c_uint)) {}
 
