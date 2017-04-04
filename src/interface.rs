@@ -10,7 +10,7 @@ use stopwatch::Stopwatch;
 
 #[derive(Debug, Copy, Clone)]
 pub enum GameState {
-    NotStarted,
+    NotStarted(Difficulty),
     Started,
     Won,
     Lost,
@@ -59,7 +59,7 @@ impl GameHandle {
             stopwatch: Stopwatch::new(stopwatch_tx),
             level: level,
             board: Option::None,
-            game_state: GameState::NotStarted,
+            game_state: GameState::NotStarted(level),
             duration: Option::None,
         }
     }
@@ -130,7 +130,7 @@ impl GameHandle {
 
         match self.game_state {
             GameState::Won => true,
-            GameState::Lost | GameState::NotStarted => false,
+            GameState::Lost | GameState::NotStarted(_) => false,
             GameState::Started => {
                 match self.board {
                     Option::Some(ref board) => board.is_clear(),

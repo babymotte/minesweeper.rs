@@ -109,8 +109,8 @@ fn test_get_difficulty() {
 #[test]
 fn test_convert_game_state_change() {
 
-    assert_eq!(minesweeper_u32::convert_game_state_change(GameState::NotStarted),
-               0b_00_00_000000000000_00000000_00000000);
+    assert_eq!(minesweeper_u32::convert_game_state_change(GameState::NotStarted(Difficulty::Beginner)),
+               0b_00_00_000000000000_00001001_00001001);
 
     assert_eq!(minesweeper_u32::convert_game_state_change(GameState::Started),
                0b_00_01_000000000000_00000000_00000000);

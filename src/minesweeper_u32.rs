@@ -3,6 +3,7 @@ extern crate regex;
 extern crate libc;
 
 use std::time::Duration;
+use core;
 use core::{Difficulty, TileState};
 use interface::{GameHandle, GameState, TileUpdate};
 use cli_io;
@@ -58,19 +59,23 @@ pub extern "C" fn command(cmd: c_uint, callback: extern "C" fn(c_uint)) {
             let (x, y) = get_x_y(cmd);
             toggle_flag(x, y, callback);
         }
-        Action::NotSpecified => {}
+        Action::NotSpecified => {
+            println!("Unknown command: {}", cmd);
+        }
     }
 
 }
 
 fn start(level: Difficulty, callback: extern "C" fn(c_uint)) {
 
+    println!("Starting new game with difficulty {:?}", &level);
+
     let handle = GameHandle::new(level, Option::None);
     cli_io::print_board(&handle);
 
     *GAME_HANDLE.lock().unwrap() = Option::Some(handle);
 
-    let feedback = convert_game_state_change(GameState::NotStarted);
+    let feedback = convert_game_state_change(GameState::NotStarted(level));
 
     callback(feedback);
 }
@@ -82,8 +87,13 @@ fn uncover_tile(x: usize, y: usize, callback: extern "C" fn(c_uint)) {
         cli_io::print_board(&handle);
 
         for result in results {
-            let feedback = convert_tile_update(result);
-            callback(feedback);
+            match result.get_state() {
+                TileState::NoOp => {}
+                _ => {
+                    let feedback = convert_tile_update(result);
+                    callback(feedback);
+                }
+            }
         }
     }
 }
@@ -94,13 +104,25 @@ fn toggle_flag(x: usize, y: usize, callback: extern "C" fn(c_uint)) {
         let result = handle.toggle_flag(x, y);
         cli_io::print_board(&handle);
 
-        let feedback = convert_tile_update(result);
-        callback(feedback);
+        match result.get_state() {
+            TileState::NoOp => {}
+            _ => {
+                let feedback = convert_tile_update(result);
+                callback(feedback);
+            }
+        }
     }
 }
 
 pub fn convert_game_state_change(state: GameState) -> u32 {
-    (state as u32) << 28
+    match state {
+        GameState::NotStarted(level) => {
+            let params = core::get_params_for_difficulty(level);
+            ((params.0 << 8) | params.1) as u32},
+        GameState::Started => (1 << 28) as u32,
+        GameState::Won => (2 << 28) as u32,
+        GameState::Lost => (3 << 28) as u32,
+    }
 }
 
 pub fn convert_tile_update(update: TileUpdate) -> u32 {

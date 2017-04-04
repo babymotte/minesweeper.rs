@@ -18,6 +18,7 @@ lazy_static = "0.2"
 name = "minesweeper"
 path="src/minesweeper.rs"
 test=true
+crate-type = ["rlib", "dylib"]
 
 [[bin]]
 name = "minesweeper-cli"
