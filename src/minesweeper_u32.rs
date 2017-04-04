@@ -2,14 +2,10 @@ extern crate rand;
 extern crate regex;
 extern crate libc;
 
-use std::io;
 use std::time::Duration;
 use core::{Difficulty, TileState};
 use interface::{GameHandle, GameState, TileUpdate};
-use highscores::Highscores;
-use highscores;
 use cli_io;
-use regex::Regex;
 use libc::c_uint;
 use std::sync::{Arc, Mutex};
 use std::mem;
@@ -26,8 +22,8 @@ use std::mem;
  *
  * Return value to calling program:
  *
- * type enum      time           x     y/neighbors
- *  00 | 00 | 000000000000 | 00000000 | 0000|0000
+ * type enum time/neighbors     x          y
+ *  00 | 00 | 000000000000 | 00000000 | 00000000
  */
 
 lazy_static! {
@@ -44,7 +40,7 @@ pub enum Action {
 }
 
 #[no_mangle]
-pub extern "C" fn command(cmd: *const c_uint, callback: extern "C" fn(*const c_uint)) {
+pub extern "C" fn command(cmd: c_uint, callback: extern "C" fn(c_uint)) {
 
     let cmd = cmd as u32;
 
@@ -67,7 +63,7 @@ pub extern "C" fn command(cmd: *const c_uint, callback: extern "C" fn(*const c_u
 
 }
 
-fn start(level: Difficulty, callback: extern "C" fn(*const c_uint)) {
+fn start(level: Difficulty, callback: extern "C" fn(c_uint)) {
 
     let handle = GameHandle::new(level, Option::None);
     cli_io::print_board(&handle);
@@ -76,10 +72,10 @@ fn start(level: Difficulty, callback: extern "C" fn(*const c_uint)) {
 
     let feedback = convert_game_state_change(GameState::NotStarted);
 
-    // TODO send feedback
+    callback(feedback);
 }
 
-fn uncover_tile(x: usize, y: usize, callback: extern "C" fn(*const c_uint)) {
+fn uncover_tile(x: usize, y: usize, callback: extern "C" fn(c_uint)) {
 
     if let Option::Some(ref mut handle) = *GAME_HANDLE.lock().unwrap() {
         let results = handle.uncover(x, y);
@@ -87,17 +83,21 @@ fn uncover_tile(x: usize, y: usize, callback: extern "C" fn(*const c_uint)) {
 
         for result in results {
             let feedback = convert_tile_update(result);
-            // TODO send feedback
+            callback(feedback);
         }
     }
 }
 
-fn toggle_flag(x: usize, y: usize, callback: extern "C" fn(*const c_uint)) {}
+fn toggle_flag(x: usize, y: usize, callback: extern "C" fn(c_uint)) {
 
-fn report_game_state_change(state: GameState, callback: extern "C" fn(*const c_uint)) {}
-fn report_tile_state_change(state: TileState, callback: extern "C" fn(*const c_uint)) {}
-fn report_time_change(state: Duration, callback: extern "C" fn(*const c_uint)) {}
-fn report_new_highscore(state: Duration, callback: extern "C" fn(*const c_uint)) {}
+    if let Option::Some(ref mut handle) = *GAME_HANDLE.lock().unwrap() {
+        let result = handle.toggle_flag(x, y);
+        cli_io::print_board(&handle);
+
+        let feedback = convert_tile_update(result);
+        callback(feedback);
+    }
+}
 
 pub fn convert_game_state_change(state: GameState) -> u32 {
     (state as u32) << 28
