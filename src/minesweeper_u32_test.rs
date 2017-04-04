@@ -1,7 +1,7 @@
 use minesweeper_u32;
 use minesweeper_u32::Action;
 use core::{Difficulty, TileState};
-use interface::GameState;
+use interface::{GameState, TileUpdate};
 
 /*
  * Don't let yourself be irritated by the unconventional formatting of the binary
@@ -123,23 +123,23 @@ fn test_convert_game_state_change() {
 }
 
 #[test]
-fn test_convert_tile_state_change() {
+fn test_convert_tile_update() {
 
-    assert_eq!(minesweeper_u32::convert_tile_state_change(TileState::Covered),
+    assert_eq!(minesweeper_u32::convert_tile_update(TileUpdate::new(0b_00000000, 0b_00000000, TileState::Covered)),
                0b_01_00_000000000000_00000000_00000000);
 
-    assert_eq!(minesweeper_u32::convert_tile_state_change(TileState::Marked),
-               0b_01_01_000000000000_00000000_00000000);
+    assert_eq!(minesweeper_u32::convert_tile_update(TileUpdate::new(0b_00000001, 0b_00000001, TileState::Marked)),
+               0b_01_01_000000000000_00000001_00000001);
 
-    assert_eq!(minesweeper_u32::convert_tile_state_change(TileState::Detonated),
-               0b_01_11_000000000000_00000000_00000000);
+    assert_eq!(minesweeper_u32::convert_tile_update(TileUpdate::new(0b_00010111, 0b_10010110, TileState::Detonated)),
+               0b_01_11_000000000000_00010111_10010110);
 
-    assert_eq!(minesweeper_u32::convert_tile_state_change(TileState::Uncovered(0b_0000)),
-               0b_01_10_000000000000_00000000_00000000);
+    assert_eq!(minesweeper_u32::convert_tile_update(TileUpdate::new(0b_11111111, 0b_00000000, TileState::Uncovered(0b_0000))),
+               0b_01_10_000000000000_11111111_00000000);
 
-    assert_eq!(minesweeper_u32::convert_tile_state_change(TileState::Uncovered(0b_0010)),
-               0b_01_10_000000000000_00000000_00000010);
+    assert_eq!(minesweeper_u32::convert_tile_update(TileUpdate::new(0b_01010101, 0b_10101010, TileState::Uncovered(0b_0010))),
+               0b_01_10_000000000010_01010101_10101010);
 
-    assert_eq!(minesweeper_u32::convert_tile_state_change(TileState::Uncovered(0b_1010)),
-               0b_01_10_000000000000_00000000_00001010);
+    assert_eq!(minesweeper_u32::convert_tile_update(TileUpdate::new(0b_00000111, 0b_00000100, TileState::Uncovered(0b_1010))),
+               0b_01_10_000000001010_00000111_00000100);
 }

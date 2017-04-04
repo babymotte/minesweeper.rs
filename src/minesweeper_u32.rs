@@ -5,9 +5,10 @@ extern crate libc;
 use std::io;
 use std::time::Duration;
 use core::{Difficulty, TileState};
-use interface::{GameHandle, GameState};
+use interface::{GameHandle, GameState, TileUpdate};
 use highscores::Highscores;
 use highscores;
+use cli_io;
 use regex::Regex;
 use libc::c_uint;
 use std::sync::{Arc, Mutex};
@@ -68,9 +69,29 @@ pub extern "C" fn command(cmd: *const c_uint, callback: extern "C" fn(*const c_u
 
 fn start(level: Difficulty, callback: extern "C" fn(*const c_uint)) {
 
+    let handle = GameHandle::new(level, Option::None);
+    cli_io::print_board(&handle);
+
+    *GAME_HANDLE.lock().unwrap() = Option::Some(handle);
+
+    let feedback = convert_game_state_change(GameState::NotStarted);
+
+    // TODO send feedback
 }
 
-fn uncover_tile(x: usize, y: usize, callback: extern "C" fn(*const c_uint)) {}
+fn uncover_tile(x: usize, y: usize, callback: extern "C" fn(*const c_uint)) {
+
+    if let Option::Some(ref mut handle) = *GAME_HANDLE.lock().unwrap() {
+        let results = handle.uncover(x, y);
+        cli_io::print_board(&handle);
+
+        for result in results {
+            let feedback = convert_tile_update(result);
+            // TODO send feedback
+        }
+    }
+}
+
 fn toggle_flag(x: usize, y: usize, callback: extern "C" fn(*const c_uint)) {}
 
 fn report_game_state_change(state: GameState, callback: extern "C" fn(*const c_uint)) {}
@@ -82,21 +103,22 @@ pub fn convert_game_state_change(state: GameState) -> u32 {
     (state as u32) << 28
 }
 
-pub fn convert_tile_state_change(state: TileState) -> u32 {
-    match state {
+pub fn convert_tile_update(update: TileUpdate) -> u32 {
+    let base = match update.get_state() {
         TileState::Covered => 0b_01_00_000000000000_00000000_00000000,
         TileState::Marked => 0b_01_01_000000000000_00000000_00000000,
         TileState::Uncovered(neighbors) => {
-            (0b_01_10_000000000000_00000000_00000000 | (neighbors as u32))
+            (0b_01_10_000000000000_00000000_00000000 | ((neighbors as u32) << 16))
         }
         TileState::Detonated => 0b_01_11_000000000000_00000000_00000000,
         _ => panic!("NoOp not allowed!"),
-    }
+    };
+    base | ((update.get_x() << 8) as u32) | (update.get_y() as u32)
 }
 
 pub fn convert_time_change(duration: Duration) -> u32 {
     let seconds = (duration.as_secs() * 1_000) as u32;
-    let nanos = (duration.subsec_nanos() / 1_000_000) as u32; 
+    let nanos = (duration.subsec_nanos() / 1_000_000) as u32;
     let millis = seconds + nanos;
     0b_10_000000_00000000_00000000_00000000 | millis
 }

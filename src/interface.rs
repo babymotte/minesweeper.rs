@@ -32,12 +32,24 @@ pub struct GameHandle {
 }
 
 impl TileUpdate {
-    fn new(x: usize, y: usize, state: TileState) -> TileUpdate {
+    pub fn new(x: usize, y: usize, state: TileState) -> TileUpdate {
         TileUpdate {
             x: x,
             y: y,
             state: state,
         }
+    }
+
+    pub fn get_state(&self) -> TileState {
+        self.state
+    }
+
+    pub fn get_x(&self) -> usize {
+        self.x
+    }
+
+    pub fn get_y(&self) -> usize {
+        self.y
     }
 }
 
@@ -104,7 +116,7 @@ impl GameHandle {
             TileState::Detonated => {
                 self.duration = Option::Some(self.stopwatch.stop().unwrap());
                 self.game_state = GameState::Lost;
-            },
+            }
             _ => {}
         }
 
@@ -154,7 +166,10 @@ impl GameHandle {
             self.init_board(x, y);
         }
 
-        let state = self.board.as_mut().unwrap().toggle_flag(x, y);
+        let state = self.board
+            .as_mut()
+            .unwrap()
+            .toggle_flag(x, y);
         TileUpdate::new(x, y, state)
     }
 
@@ -165,9 +180,9 @@ impl GameHandle {
         if let Option::Some(ref board) = self.board {
             let neighbors = board.get_nearby_coordinates(x, y);
             let filtered = neighbors.iter().filter(|c| {
-                let tile = board.get_tile(c.0, c.1);
-                tile.get_state() == TileState::Covered
-            });
+                                                       let tile = board.get_tile(c.0, c.1);
+                                                       tile.get_state() == TileState::Covered
+                                                   });
             for c in filtered {
                 uncover.push(*c);
             }
