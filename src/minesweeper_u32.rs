@@ -88,7 +88,13 @@ fn uncover_tile(x: usize, y: usize, callback: extern "C" fn(c_uint)) {
 
         for result in results {
             match result.get_state() {
-                TileState::NoOp => {}
+                TileState::NoOp => {},
+                TileState::Detonated => {
+                    let tile_feedback = convert_tile_update(result);
+                    callback(tile_feedback);
+                    let game_feedback = convert_game_state_change(GameState::Lost);
+                    callback(game_feedback);
+                }
                 _ => {
                     let feedback = convert_tile_update(result);
                     callback(feedback);
