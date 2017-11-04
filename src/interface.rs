@@ -89,7 +89,7 @@ impl GameHandle {
     }
 
     fn do_unvocer(&mut self, x: usize, y: usize) -> TileState {
-        let mut board = self.board.as_mut().unwrap();
+        let board = self.board.as_mut().unwrap();
         board.uncover(x, y)
     }
 

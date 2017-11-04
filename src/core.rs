@@ -101,7 +101,7 @@ impl MineField {
 
     pub fn uncover(&mut self, x: usize, y: usize) -> TileState {
 
-        let mut tile = self.get_mut_tile(x, y);
+        let tile = self.get_mut_tile(x, y);
 
         match tile.state {
             TileState::Covered => uncover(tile),
