@@ -19,7 +19,9 @@ enum Command {
 }
 
 fn main() {
-
+    
+    println!("Hello");
+    
     let level = Difficulty::Beginner;
     let handle = GameHandle::new(level, Option::None);
 
